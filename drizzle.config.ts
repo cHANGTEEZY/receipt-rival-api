@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig } from "drizzle-kit";
+import { urlForPg } from "./src/db/pg-config";
 
 function loadEnvFiles() {
   for (const file of [".env.local", ".env"]) {
@@ -45,22 +46,11 @@ if (!migrationUrl) {
   );
 }
 
-/** Neon copy-paste URLs often include `channel_binding=require`; node-pg commonly fails on it. */
-function urlForPgCli(url: string): string {
-  try {
-    const u = new URL(url);
-    u.searchParams.delete("channel_binding");
-    return u.toString();
-  } catch {
-    return url;
-  }
-}
-
 export default defineConfig({
   schema: ["src/db/schema/index.ts"],
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: urlForPgCli(migrationUrl),
+    url: urlForPg(migrationUrl),
   },
 });

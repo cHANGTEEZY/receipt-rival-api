@@ -88,6 +88,13 @@ Create a PostgreSQL database matching your `DATABASE_URL`, then run migrations:
 bun run db:migrate
 ```
 
+If you're using Neon, set both connection strings:
+
+- `DATABASE_URL` — pooled URL (`...-pooler...`) for the running API
+- `DATABASE_URL_UNPOOLED` — direct URL for migrations and Drizzle Kit
+
+Migrations run through Node with IPv4-only DNS lookup, because some networks reach Neon on port 5432 but fail when `pg` tries unreachable IPv6 addresses.
+
 ### 4. Start the dev server
 
 ```bash

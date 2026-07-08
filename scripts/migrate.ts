@@ -3,6 +3,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Pool } from "pg";
+import { pgPoolConfig } from "../src/db/pg-config.ts";
 
 function loadEnvFiles() {
   for (const file of [".env.local", ".env"]) {
@@ -40,28 +41,31 @@ const migrationUrl =
 
 if (!migrationUrl) {
   throw new Error(
-    "Set DATABASE_URL (and optionally DATABASE_URL_UNPOOLED for Neon migrations)",
+    "Set DATABASE_URL (and DATABASE_URL_UNPOOLED for Neon migrations)",
   );
 }
 
-function urlForPgCli(url: string): string {
-  try {
-    const u = new URL(url);
-    u.searchParams.delete("channel_binding");
-    return u.toString();
-  } catch {
-    return url;
-  }
-}
-
-const pool = new Pool({
-  connectionString: urlForPgCli(migrationUrl),
-});
-
+const pool = new Pool(pgPoolConfig(migrationUrl));
 const db = drizzle(pool);
 
-await migrate(db, { migrationsFolder: "./drizzle" });
+try {
+  await migrate(db, { migrationsFolder: "./drizzle" });
+  console.log("Migrations applied successfully");
+} catch (error) {
+  const host = (() => {
+    try {
+      return new URL(migrationUrl).hostname;
+    } catch {
+      return "your database host";
+    }
+  })();
 
-await pool.end();
-
-console.log("Migrations applied successfully");
+  console.error(
+    `Migration failed connecting to ${host}:5432.\n` +
+      "Port 5432 may be open while node-pg still fails if IPv6 is broken — this script forces IPv4.\n" +
+      "Also ensure DATABASE_URL_UNPOOLED is the direct Neon URL (not -pooler).",
+  );
+  throw error;
+} finally {
+  await pool.end();
+}
