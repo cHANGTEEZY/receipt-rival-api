@@ -45,7 +45,7 @@ if (!migrationUrl) {
   );
 }
 
-const pool = new Pool(pgPoolConfig(migrationUrl));
+const pool = new Pool(await pgPoolConfig(migrationUrl));
 const db = drizzle(pool);
 
 try {

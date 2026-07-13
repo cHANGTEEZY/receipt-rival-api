@@ -7,6 +7,8 @@ import { secureHeaders } from "hono/secure-headers";
 import {
   corsCredentialsEnabled,
   env,
+  isTrustedFrontendOrigin,
+  normalizeOrigin,
   trustedFrontendOrigins,
 } from "./config/env";
 import { registerOpenApiDocs } from "./docs/openapi";
@@ -31,12 +33,12 @@ app.use(
   cors({
     origin: (origin) => {
       if (!origin) return trustedFrontendOrigins[0] ?? "http://localhost:5173";
-      const normalized = origin.replace(/\/$/, "");
-      if (trustedFrontendOrigins.includes(normalized)) return normalized;
+      const normalized = normalizeOrigin(origin);
+      if (isTrustedFrontendOrigin(normalized)) return normalized;
       if (env.CORS_ORIGIN.trim() === "*") return origin;
       return trustedFrontendOrigins[0] ?? "http://localhost:5173";
     },
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "Cookie", "expo-origin"],
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: corsCredentialsEnabled,
   }),
@@ -75,10 +77,9 @@ function applyCorsHeadersOnError(
   const origin = c.req.header("origin");
   if (!origin) return;
 
-  const normalizedOrigin = origin.replace(/\/$/, "");
+  const normalizedOrigin = normalizeOrigin(origin);
   const isAllowed =
-    env.CORS_ORIGIN.trim() === "*" ||
-    trustedFrontendOrigins.includes(normalizedOrigin);
+    env.CORS_ORIGIN.trim() === "*" || isTrustedFrontendOrigin(normalizedOrigin);
 
   if (!isAllowed) return;
 

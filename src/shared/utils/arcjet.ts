@@ -28,8 +28,10 @@ export const ajAuthSignup = aj.withRule(
       mode: "LIVE",
       deny: ["DISPOSABLE", "INVALID", "NO_MX_RECORDS"],
     },
+    // Expo/RN clients are not browsers; LIVE allow-list mode flags them as bots.
+    // Keep email + rate-limit LIVE; dry-run bots so native signup is not blocked.
     bots: {
-      mode: "LIVE",
+      mode: "DRY_RUN",
       allow: [],
     },
     rateLimit: {

@@ -4,6 +4,6 @@ import { env } from "../config/env";
 import { pgPoolConfig } from "./pg-config";
 import * as schema from "./schema";
 
-export const pool = new Pool(pgPoolConfig(env.DATABASE_URL));
+export const pool = new Pool(await pgPoolConfig(env.DATABASE_URL));
 
 export const db = drizzle(pool, { schema });

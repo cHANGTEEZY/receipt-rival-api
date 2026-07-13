@@ -1,17 +1,7 @@
-import dns from "node:dns";
+import dns from "node:dns/promises";
 import type { PoolConfig } from "pg";
 
-type PgPoolConfig = PoolConfig & {
-  lookup?: (
-    hostname: string,
-    options: unknown,
-    callback: (
-      err: NodeJS.ErrnoException | null,
-      address: string,
-      family?: number,
-    ) => void,
-  ) => void;
-};
+type PgPoolConfig = PoolConfig;
 
 /** Neon copy-paste URLs often include `channel_binding=require`; node-pg commonly fails on it. */
 export function urlForPg(url: string): string {
@@ -24,13 +14,38 @@ export function urlForPg(url: string): string {
   }
 }
 
-/** Prefer IPv4 so pg does not fail when IPv6 routes are unreachable (common on some networks). */
-export function pgPoolConfig(connectionString: string): PgPoolConfig {
+function sslFromUrl(u: URL): PoolConfig["ssl"] {
+  const mode = (u.searchParams.get("sslmode") ?? "").toLowerCase();
+  if (!mode || mode === "disable") return false;
+  // verify-full / verify-ca / require — keep SNI as the original hostname when
+  // we connect via a pinned IPv4 address (see pgPoolConfig).
   return {
-    connectionString: urlForPg(connectionString),
+    rejectUnauthorized: mode !== "require" && mode !== "no-verify",
+    servername: u.hostname,
+  };
+}
+
+/**
+ * Build a `pg` Pool config that works under both Node and Bun.
+ *
+ * Bun ignores Pool `lookup` and uses Happy Eyeballs; Neon IPv6 endpoints often
+ * fail here (ETIMEDOUT / ECONNREFUSED). Pin IPv4 and keep TLS SNI as the
+ * hostname so `sslmode=verify-full` still validates.
+ */
+export async function pgPoolConfig(
+  connectionString: string,
+): Promise<PgPoolConfig> {
+  const cleaned = urlForPg(connectionString);
+  const u = new URL(cleaned);
+  const { address } = await dns.lookup(u.hostname, { family: 4 });
+
+  return {
+    host: address,
+    port: Number(u.port || 5432),
+    user: decodeURIComponent(u.username),
+    password: decodeURIComponent(u.password),
+    database: decodeURIComponent(u.pathname.replace(/^\//, "")),
+    ssl: sslFromUrl(u),
     connectionTimeoutMillis: 15_000,
-    lookup: (hostname, _options, callback) => {
-      dns.lookup(hostname, { family: 4 }, callback);
-    },
   };
 }
