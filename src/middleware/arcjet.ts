@@ -82,6 +82,14 @@ async function readSignupEmail(request: Request): Promise<string | undefined> {
     const body = authSignupBodySchema.parse(await request.clone().json());
     return body.email;
   } catch {
-    return undefined;
+    // Fall back to extracting the raw string so Arcjet can evaluate INVALID/DISPOSABLE.
+    try {
+      const body = (await request.clone().json()) as unknown;
+      if (!body || typeof body !== "object") return undefined;
+      const email = (body as { email?: unknown }).email;
+      return typeof email === "string" && email.length > 0 ? email : undefined;
+    } catch {
+      return undefined;
+    }
   }
 }
