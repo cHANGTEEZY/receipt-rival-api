@@ -41,6 +41,25 @@ const LOCAL_DEV_ORIGINS = [
   "http://127.0.0.1:3000",
 ] as const;
 
+/** App scheme for production / dev builds (see Better Auth Expo docs). */
+const EXPO_APP_ORIGINS = ["myapp://", "myapp://*"] as const;
+
+/**
+ * Expo Go + Metro origins. Better Auth matches wildcards; only use exp://
+ * patterns in development (dynamic LAN IPs).
+ */
+const EXPO_DEV_ORIGINS = [
+  "exp://",
+  "exp://**",
+  "exp://127.0.0.1:*/**",
+  "exp://localhost:*/**",
+  "exp://192.168.*.*:*/**",
+  "exp://10.*.*.*:*/**",
+  "exp://172.*.*.*:*/**",
+  "http://localhost:8081",
+  "http://127.0.0.1:8081",
+] as const;
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
@@ -69,29 +88,59 @@ const envSchema = z.object({
 
 const raw = envSchema.parse(process.env);
 
-function normalizeOrigin(url: string): string {
-  let u = url
-    .trim()
-    .replace(/^["']|["']$/g, "")
-    .replace(/\/$/, "");
+/**
+ * Normalize an Origin for allow-list checks.
+ * Custom app schemes (Expo `myapp://`, `exp://host:port`) must not be
+ * rewritten to `http://…` or have their trailing `//` stripped to `:/`.
+ */
+export function normalizeOrigin(url: string): string {
+  let u = url.trim().replace(/^["']|["']$/g, "");
   if (u === "*") return "*";
   if (!u) return u;
-  if (!/^https?:\/\//i.test(u)) {
+
+  const isHttp = /^https?:\/\//i.test(u);
+  const isCustomScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(u) && !isHttp;
+
+  if (isCustomScheme) {
+    // Keep scheme-only origins intact (`myapp://`); strip path trailing slash only.
+    if (/:\/\/$/.test(u)) return u;
+    return u.replace(/\/$/, "");
+  }
+
+  u = u.replace(/\/$/, "");
+  if (!isHttp) {
     u = `http://${u}`;
   }
   return u;
 }
 
 export const trustedFrontendOrigins: string[] = (() => {
+  const expo =
+    raw.NODE_ENV === "development"
+      ? [...EXPO_APP_ORIGINS, ...EXPO_DEV_ORIGINS]
+      : [...EXPO_APP_ORIGINS];
+
   if (normalizeOrigin(raw.CORS_ORIGIN) === "*") {
-    return [...LOCAL_DEV_ORIGINS];
+    return [...new Set([...LOCAL_DEV_ORIGINS, ...expo])];
   }
   const fromEnv = raw.CORS_ORIGIN.split(",")
     .map(normalizeOrigin)
     .filter(Boolean);
-  return [...new Set([...LOCAL_DEV_ORIGINS, ...fromEnv])];
+  return [...new Set([...LOCAL_DEV_ORIGINS, ...fromEnv, ...expo])];
 })();
 
 export const corsCredentialsEnabled = normalizeOrigin(raw.CORS_ORIGIN) !== "*";
+
+/** Exact or Expo/wildcard match for CORS allow-lists (Better Auth has its own matcher). */
+export function isTrustedFrontendOrigin(origin: string): boolean {
+  const normalized = normalizeOrigin(origin);
+  if (!normalized || normalized === "null") return false;
+  if (trustedFrontendOrigins.includes(normalized)) return true;
+  if (normalized.startsWith("myapp://")) return true;
+  if (raw.NODE_ENV === "development" && normalized.startsWith("exp://")) {
+    return true;
+  }
+  return false;
+}
 
 export const env = raw;

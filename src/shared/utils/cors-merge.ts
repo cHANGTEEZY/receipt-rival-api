@@ -1,7 +1,8 @@
 import {
   corsCredentialsEnabled,
   env,
-  trustedFrontendOrigins,
+  isTrustedFrontendOrigin,
+  normalizeOrigin,
 } from "../../config/env";
 
 /**
@@ -14,14 +15,15 @@ export function mergeCorsIntoAuthResponse(
   res: Response,
 ): Response {
   const origin = req.headers.get("origin");
+  const normalizedOrigin = origin ? normalizeOrigin(origin) : null;
   const headers = new Headers(res.headers);
 
   if (
-    origin &&
+    normalizedOrigin &&
     corsCredentialsEnabled &&
-    trustedFrontendOrigins.includes(origin)
+    isTrustedFrontendOrigin(normalizedOrigin)
   ) {
-    headers.set("Access-Control-Allow-Origin", origin);
+    headers.set("Access-Control-Allow-Origin", normalizedOrigin);
     headers.set("Access-Control-Allow-Credentials", "true");
     const vary = headers.get("Vary");
     headers.set("Vary", vary ? `${vary}, Origin` : "Origin");
