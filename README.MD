@@ -211,7 +211,7 @@ src/db/
 
 ## Security (Arcjet)
 
-Arcjet is configured in [`src/shared/utils/arcjet.ts`](src/shared/utils/arcjet.ts) and applied per route handler (not global middleware), following Arcjet best practices.
+Arcjet is configured in [`src/shared/utils/arcjet.ts`](src/shared/utils/arcjet.ts) and applied per route (not global middleware), following Arcjet best practices. It's edge/abuse protection - bot detection, WAF "shield" attack signatures, and IP-based rate limiting - and has no notion of whether a request is authenticated. That's a separate concern handled by [`requireAuth()`](src/middleware/require-auth.ts), which checks for a real user session set by `sessionMiddleware`. Routes that need both apply `arcjetProtect()`/`arcjetAuthGuard()` from [`src/middleware/arcjet.ts`](src/middleware/arcjet.ts) followed by `requireAuth()` - never re-implemented inside a controller.
 
 | Client | Rules | Applied to |
 | --- | --- | --- |
@@ -306,8 +306,8 @@ Set `CORS_ORIGIN` and `FRONTEND_ORIGIN` to your frontend URL (e.g. `http://local
 
 1. Create a module under `src/modules/<name>/` (routes, controller, service, docs)
 2. Register routes in [`src/modules/v1.routes.ts`](src/modules/v1.routes.ts) or [`src/app.ts`](src/app.ts)
-3. Call `ajApi.protect()` (or another Arcjet client) in the controller
-4. Use `requireAuth()` for protected endpoints
+3. Add `arcjetProtect(ajApi)` (or another Arcjet client, via [`src/middleware/arcjet.ts`](src/middleware/arcjet.ts)) as route-level middleware for abuse protection
+4. Add `requireAuth()` after it for protected endpoints - keep both out of the controller
 
 ---
 

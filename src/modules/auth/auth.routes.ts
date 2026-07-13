@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { describeRoute } from "hono-openapi";
+import { arcjetAuthGuard } from "../../middleware/arcjet";
 import type { AppVariables } from "../../shared/types/app.types";
 import { authController } from "./auth.controller";
 import { authDocs } from "./auth.docs";
@@ -9,6 +10,7 @@ export const authRoutes = new Hono<{ Variables: AppVariables }>();
 authRoutes.on(
   ["POST", "GET"],
   "/*",
+  arcjetAuthGuard(),
   describeRoute({
     tags: authDocs.getSession.tags,
     summary: "Better Auth handler",
