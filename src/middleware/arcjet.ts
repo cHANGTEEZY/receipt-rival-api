@@ -1,10 +1,22 @@
-import type { ArcjetDecision } from "@arcjet/bun";
+import type { ArcjetDecision, ArcjetNodeRequest } from "@arcjet/node";
 import { createMiddleware } from "hono/factory";
 import { ajAuth, ajAuthSignup } from "../shared/utils/arcjet";
 import { handleArcjetDecision } from "../shared/utils/arcjet-deny";
 import { mergeCorsIntoAuthResponse } from "../shared/utils/cors-merge";
 import { authSignupBodySchema } from "../modules/auth/auth.validator";
 import type { AppVariables } from "../shared/types/app.types";
+
+type ArcjetProtectClient = {
+  protect: (
+    request: ArcjetNodeRequest,
+    properties?: { correlationId?: string },
+  ) => Promise<ArcjetDecision>;
+};
+
+/** Hono's Request is compatible at runtime; cast for @arcjet/node's ArcjetNodeRequest. */
+function arcjetRequest(req: Request): ArcjetNodeRequest {
+  return req as unknown as ArcjetNodeRequest;
+}
 
 /**
  * Arcjet is abuse/edge protection: bot detection, WAF "shield" attack
@@ -21,14 +33,9 @@ import type { AppVariables } from "../shared/types/app.types";
  * @param client An Arcjet client from `src/shared/utils/arcjet.ts` (e.g.
  *   `aj`, `ajApi`) that doesn't require extra per-request properties.
  */
-export const arcjetProtect = (client: {
-  protect: (
-    request: Request,
-    properties?: { correlationId?: string },
-  ) => Promise<ArcjetDecision>;
-}) =>
+export const arcjetProtect = (client: ArcjetProtectClient) =>
   createMiddleware<{ Variables: AppVariables }>(async (c, next) => {
-    const decision = await client.protect(c.req.raw, {
+    const decision = await client.protect(arcjetRequest(c.req.raw), {
       correlationId: c.get("requestId"),
     });
     const denied = handleArcjetDecision(c, decision);
@@ -55,16 +62,17 @@ export const arcjetAuthGuard = () =>
     let decision: ArcjetDecision;
     if (isSignup) {
       const email = await readSignupEmail(c.req.raw);
+      const req = arcjetRequest(c.req.raw);
       decision = email
-        ? await ajAuthSignup.protect(c.req.raw, {
+        ? await ajAuthSignup.protect(req, {
             email,
             correlationId: c.get("requestId"),
           })
-        : await ajAuth.protect(c.req.raw, {
+        : await ajAuth.protect(req, {
             correlationId: c.get("requestId"),
           });
     } else {
-      decision = await ajAuth.protect(c.req.raw, {
+      decision = await ajAuth.protect(arcjetRequest(c.req.raw), {
         correlationId: c.get("requestId"),
       });
     }

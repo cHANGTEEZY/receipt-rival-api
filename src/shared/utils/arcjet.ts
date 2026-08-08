@@ -1,4 +1,4 @@
-import arcjet, { protectSignup, shield, slidingWindow } from "@arcjet/bun";
+import arcjet, { protectSignup, shield, slidingWindow } from "@arcjet/node";
 import { env } from "../../config/env";
 
 export const aj = arcjet({

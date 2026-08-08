@@ -115,3 +115,5 @@ app.onError((err, c) => {
   );
   return c.json(body, status);
 });
+
+export default app;

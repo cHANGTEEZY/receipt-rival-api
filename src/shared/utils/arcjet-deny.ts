@@ -1,4 +1,4 @@
-import type { ArcjetDecision } from "@arcjet/bun";
+import type { ArcjetDecision } from "@arcjet/node";
 import type { Context } from "hono";
 import type { AppVariables } from "../types/app.types";
 import { logger } from "./logger";

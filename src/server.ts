@@ -1,5 +1,4 @@
 import { app } from "./app";
-import { aj } from "./shared/utils/arcjet";
 import {
   corsCredentialsEnabled,
   env,
@@ -8,7 +7,7 @@ import {
 import { logger } from "./shared/utils/logger";
 
 const server = Bun.serve({
-  fetch: aj.handler(app.fetch),
+  fetch: app.fetch,
   hostname: env.HOST,
   port: env.PORT,
   idleTimeout: 30,
