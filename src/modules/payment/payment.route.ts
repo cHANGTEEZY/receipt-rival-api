@@ -8,15 +8,12 @@ import { paymentController } from "./payment.controller";
 import { paymentDocs } from "./payment.docs";
 import {
   addParticipantSchema,
-  createEqualSplitSchema,
-  createItemBasedSplitSchema,
   createPaymentItemSchema,
   createPaymentSchema,
   updatePaymentSchema,
 } from "./payment.validator";
 
 export const paymentRoutes = new Hono<{ Variables: AppVariables }>();
-export const splitRoutes = new Hono<{ Variables: AppVariables }>();
 
 paymentRoutes.post(
   "/",
@@ -108,64 +105,4 @@ paymentRoutes.delete(
   requireAuth(),
   describeRoute(paymentDocs.removeParticipant),
   (c) => paymentController.removeParticipant(c),
-);
-
-paymentRoutes.post(
-  "/:paymentId/splits/equal",
-  arcjetProtect(ajApi),
-  requireAuth(),
-  describeRoute(paymentDocs.createEqualSplit),
-  validator("json", createEqualSplitSchema),
-  (c) => paymentController.createEqualSplit(c),
-);
-
-paymentRoutes.post(
-  "/:paymentId/splits/item-based",
-  arcjetProtect(ajApi),
-  requireAuth(),
-  describeRoute(paymentDocs.createItemBasedSplit),
-  validator("json", createItemBasedSplitSchema),
-  (c) => paymentController.createItemBasedSplit(c),
-);
-
-paymentRoutes.get(
-  "/:paymentId/splits",
-  arcjetProtect(ajApi),
-  requireAuth(),
-  describeRoute(paymentDocs.listSplits),
-  (c) => paymentController.listSplits(c),
-);
-
-splitRoutes.get(
-  "/:splitId",
-  arcjetProtect(ajApi),
-  requireAuth(),
-  describeRoute(paymentDocs.getSplit),
-  (c) => paymentController.getSplit(c),
-);
-
-export const meRoutes = new Hono<{ Variables: AppVariables }>();
-
-meRoutes.get(
-  "/payments",
-  arcjetProtect(ajApi),
-  requireAuth(),
-  describeRoute(paymentDocs.listMyPayments),
-  (c) => paymentController.listMyPayments(c),
-);
-
-meRoutes.get(
-  "/splits/owed-by-me",
-  arcjetProtect(ajApi),
-  requireAuth(),
-  describeRoute(paymentDocs.listSplitsOwedByMe),
-  (c) => paymentController.listSplitsOwedByMe(c),
-);
-
-meRoutes.get(
-  "/splits/owed-to-me",
-  arcjetProtect(ajApi),
-  requireAuth(),
-  describeRoute(paymentDocs.listSplitsOwedToMe),
-  (c) => paymentController.listSplitsOwedToMe(c),
 );

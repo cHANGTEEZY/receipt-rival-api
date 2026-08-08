@@ -4,12 +4,9 @@ import {
   publicParticipantSchema,
   publicPaymentItemSchema,
   publicPaymentSchema,
-  publicSplitSchema,
 } from "./payment.validator";
 
 export const paymentTags = ["Payments"];
-export const splitsTags = ["Splits"];
-export const meTags = ["Me"];
 
 export const paymentErrorSchema = z.object({
   success: z.literal(false),
@@ -53,18 +50,6 @@ const participantResponseSchema = z.object({
 const participantListResponseSchema = z.object({
   success: z.literal(true),
   data: z.array(publicParticipantSchema),
-  requestId: z.string(),
-});
-
-const splitResponseSchema = z.object({
-  success: z.literal(true),
-  data: publicSplitSchema,
-  requestId: z.string(),
-});
-
-const splitListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(publicSplitSchema),
   requestId: z.string(),
 });
 
@@ -343,163 +328,6 @@ export const paymentDocs = {
           "application/json": { schema: resolver(paymentErrorSchema) },
         },
       },
-    },
-  },
-  createEqualSplit: {
-    tags: splitsTags,
-    summary: "Create equal splits",
-    description:
-      "Creates equal pending splits for debtors. Replaces existing pending splits.",
-    security: [{ cookieAuth: [] }],
-    responses: {
-      201: {
-        description: "Splits created",
-        content: {
-          "application/json": { schema: resolver(splitListResponseSchema) },
-        },
-      },
-      400: {
-        description: "Invalid request",
-        content: {
-          "application/json": { schema: resolver(paymentErrorSchema) },
-        },
-      },
-      ...authErrors,
-    },
-  },
-  createItemBasedSplit: {
-    tags: splitsTags,
-    summary: "Create item-based splits",
-    description:
-      "Assigns items to participants equally per item and creates debtor splits.",
-    security: [{ cookieAuth: [] }],
-    responses: {
-      201: {
-        description: "Splits and assignments created",
-        content: {
-          "application/json": {
-            schema: resolver(
-              z.object({
-                success: z.literal(true),
-                data: z.object({
-                  splits: z.array(publicSplitSchema),
-                  assignments: z.array(
-                    z.object({
-                      id: z.string(),
-                      paymentId: z.string(),
-                      paymentItemId: z.string(),
-                      userId: z.string(),
-                      shareAmountCents: z.number().int(),
-                      createdAt: z.coerce.date(),
-                      updatedAt: z.coerce.date(),
-                    }),
-                  ),
-                }),
-                requestId: z.string(),
-              }),
-            ),
-          },
-        },
-      },
-      400: {
-        description: "Invalid request",
-        content: {
-          "application/json": { schema: resolver(paymentErrorSchema) },
-        },
-      },
-      ...authErrors,
-    },
-  },
-  listSplits: {
-    tags: splitsTags,
-    summary: "List payment splits",
-    security: [{ cookieAuth: [] }],
-    responses: {
-      200: {
-        description: "Split list",
-        content: {
-          "application/json": { schema: resolver(splitListResponseSchema) },
-        },
-      },
-      ...authErrors,
-      404: {
-        description: "Not found",
-        content: {
-          "application/json": { schema: resolver(paymentErrorSchema) },
-        },
-      },
-    },
-  },
-  getSplit: {
-    tags: splitsTags,
-    summary: "Get a split",
-    security: [{ cookieAuth: [] }],
-    responses: {
-      200: {
-        description: "Split details",
-        content: {
-          "application/json": { schema: resolver(splitResponseSchema) },
-        },
-      },
-      ...authErrors,
-      404: {
-        description: "Not found",
-        content: {
-          "application/json": { schema: resolver(paymentErrorSchema) },
-        },
-      },
-    },
-  },
-  listMyPayments: {
-    tags: meTags,
-    summary: "My payments",
-    description:
-      "Returns payments where the authenticated user is an active participant.",
-    security: [{ cookieAuth: [] }],
-    responses: {
-      200: {
-        description: "Payment list",
-        content: {
-          "application/json": {
-            schema: resolver(paymentListResponseSchema),
-          },
-        },
-      },
-      ...authErrors,
-    },
-  },
-  listSplitsOwedByMe: {
-    tags: meTags,
-    summary: "Splits I owe",
-    description: "Pending splits where the authenticated user is the debtor.",
-    security: [{ cookieAuth: [] }],
-    responses: {
-      200: {
-        description: "Split list",
-        content: {
-          "application/json": {
-            schema: resolver(splitListResponseSchema),
-          },
-        },
-      },
-      ...authErrors,
-    },
-  },
-  listSplitsOwedToMe: {
-    tags: meTags,
-    summary: "Splits owed to me",
-    description: "Pending splits where the authenticated user is the creditor.",
-    security: [{ cookieAuth: [] }],
-    responses: {
-      200: {
-        description: "Split list",
-        content: {
-          "application/json": {
-            schema: resolver(splitListResponseSchema),
-          },
-        },
-      },
-      ...authErrors,
     },
   },
 };
