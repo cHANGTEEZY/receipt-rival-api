@@ -17,6 +17,7 @@ export function registerOpenApiDocs(app: Hono<{ Variables: AppVariables }>) {
           { name: "Health", description: "Service health endpoints" },
           { name: "Auth", description: "Better Auth endpoints" },
           { name: "Users", description: "User profile endpoints" },
+          { name: "Payments", description: "Payment and bill split endpoints" },
         ],
         components: {
           securitySchemes: {

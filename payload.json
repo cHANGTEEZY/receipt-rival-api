@@ -1,0 +1,340 @@
+{
+  "create_user": {
+    "username": "alex_paylord",
+    "email": "alex@example.com",
+    "phone_number": "+15550001111",
+    "password": "StrongPassword123",
+    "display_name": "Alex",
+    "preferred_currency": "USD",
+    "timezone": "UTC"
+  },
+  "update_user_profile": {
+    "display_name": "Alex The Bill Slayer",
+    "avatar_url": "https://example.com/avatar.png",
+    "bio": "I pay first, then hunt later.",
+    "humor_title": "Bill Commander",
+    "shame_nickname": "None Yet",
+    "preferred_currency": "USD",
+    "timezone": "Asia/Kolkata"
+  },
+  "create_friend_invite_qr": {
+    "expires_at": "2026-08-15T23:59:59Z"
+  },
+  "add_friend_by_user_code": {
+    "user_code": "SAM12345"
+  },
+  "add_friend_by_qr_token": {
+    "invite_token": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  },
+  "accept_friend_request": {
+    "friendship_id": "9a1e2b6c-7f88-4d21-91aa-98d23f1c0001"
+  },
+  "reject_friend_request": {
+    "friendship_id": "9a1e2b6c-7f88-4d21-91aa-98d23f1c0001"
+  },
+  "remove_friend": {
+    "friend_user_id": "0e4d2b6c-1234-4c99-8877-91aa55cc1001"
+  },
+  "block_friend": {
+    "friend_user_id": "0e4d2b6c-1234-4c99-8877-91aa55cc1001",
+    "reason": "Keeps dodging bills"
+  },
+  "create_payment": {
+    "title": "Friday Pizza Damage",
+    "description": "Nobody escapes the cheese tax",
+    "currency": "USD",
+    "due_at": "2026-08-10T20:00:00Z",
+    "location_name": "Tony's Pizza",
+    "split_method": "equal",
+    "tax_amount_cents": 500,
+    "tip_amount_cents": 800,
+    "discount_amount_cents": 0,
+    "metadata": {
+      "mood": "funny",
+      "theme": "pizza night"
+    }
+  },
+  "add_payment_item": {
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "name": "Pepperoni Pizza",
+    "description": "Large pizza",
+    "quantity": 2,
+    "unit_price_cents": 1800,
+    "category": "food"
+  },
+  "add_multiple_payment_items": {
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "items": [
+      {
+        "name": "Pepperoni Pizza",
+        "description": "Large pizza",
+        "quantity": 2,
+        "unit_price_cents": 1800,
+        "category": "food"
+      },
+      {
+        "name": "Garlic Bread",
+        "description": "Shared side",
+        "quantity": 1,
+        "unit_price_cents": 700,
+        "category": "food"
+      },
+      {
+        "name": "Coke",
+        "description": "Soft drink",
+        "quantity": 3,
+        "unit_price_cents": 250,
+        "category": "drink"
+      }
+    ]
+  },
+  "update_payment_item": {
+    "payment_item_id": "14b8e1dc-2222-4444-9999-aa9988776655",
+    "name": "Extra Cheese Pizza",
+    "description": "Large pizza with extra cheese",
+    "quantity": 2,
+    "unit_price_cents": 2000,
+    "category": "food"
+  },
+  "delete_payment_item": {
+    "payment_item_id": "14b8e1dc-2222-4444-9999-aa9988776655"
+  },
+  "add_participant_to_payment": {
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "user_id": "0e4d2b6c-1234-4c99-8877-91aa55cc1001",
+    "nickname_at_time": "Sam The Snack Bandit"
+  },
+  "add_multiple_participants_to_payment": {
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "participants": [
+      {
+        "user_id": "0e4d2b6c-1234-4c99-8877-91aa55cc1001",
+        "nickname_at_time": "Sam The Snack Bandit"
+      },
+      {
+        "user_id": "8b7d2f99-2222-4c99-9911-22cc44aa9999",
+        "nickname_at_time": "Maya Wallet Houdini"
+      }
+    ]
+  },
+  "remove_participant_from_payment": {
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "user_id": "0e4d2b6c-1234-4c99-8877-91aa55cc1001"
+  },
+  "create_equal_split": {
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "split_method": "equal",
+    "creditor_user_id": "11111111-2222-3333-4444-555555555555",
+    "due_at": "2026-08-10T20:00:00Z",
+    "debtor_user_ids": [
+      "0e4d2b6c-1234-4c99-8877-91aa55cc1001",
+      "8b7d2f99-2222-4c99-9911-22cc44aa9999"
+    ]
+  },
+  "create_custom_amount_split": {
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "split_method": "custom_amount",
+    "creditor_user_id": "11111111-2222-3333-4444-555555555555",
+    "due_at": "2026-08-10T20:00:00Z",
+    "splits": [
+      {
+        "debtor_user_id": "0e4d2b6c-1234-4c99-8877-91aa55cc1001",
+        "amount_cents": 2500
+      },
+      {
+        "debtor_user_id": "8b7d2f99-2222-4c99-9911-22cc44aa9999",
+        "amount_cents": 3200
+      }
+    ]
+  },
+  "create_percentage_split": {
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "split_method": "percentage",
+    "creditor_user_id": "11111111-2222-3333-4444-555555555555",
+    "due_at": "2026-08-10T20:00:00Z",
+    "splits": [
+      {
+        "debtor_user_id": "0e4d2b6c-1234-4c99-8877-91aa55cc1001",
+        "percentage": 50
+      },
+      {
+        "debtor_user_id": "8b7d2f99-2222-4c99-9911-22cc44aa9999",
+        "percentage": 50
+      }
+    ]
+  },
+  "create_item_based_split": {
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "split_method": "item_based",
+    "creditor_user_id": "11111111-2222-3333-4444-555555555555",
+    "due_at": "2026-08-10T20:00:00Z",
+    "assignments": [
+      {
+        "payment_item_id": "14b8e1dc-2222-4444-9999-aa9988776655",
+        "participant_user_ids": [
+          "0e4d2b6c-1234-4c99-8877-91aa55cc1001",
+          "8b7d2f99-2222-4c99-9911-22cc44aa9999"
+        ],
+        "split_type": "equal"
+      },
+      {
+        "payment_item_id": "26f8a2aa-3333-4444-9999-bb9988776655",
+        "participant_user_ids": ["0e4d2b6c-1234-4c99-8877-91aa55cc1001"],
+        "split_type": "full"
+      }
+    ]
+  },
+  "create_payment_item_assignment": {
+    "payment_item_id": "14b8e1dc-2222-4444-9999-aa9988776655",
+    "participant_id": "77e4a9b1-3333-4444-8888-112233445566",
+    "share_percentage": 50,
+    "share_amount_cents": 900
+  },
+  "finalize_payment": {
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890"
+  },
+  "cancel_payment": {
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "reason": "Dinner got cancelled"
+  },
+  "update_payment_due_time": {
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "due_at": "2026-08-12T21:00:00Z"
+  },
+  "create_settlement": {
+    "split_id": "7c6f5a44-1234-4444-9999-aabbccddeeff",
+    "amount_cents": 2500,
+    "currency": "USD",
+    "payment_method": "upi",
+    "external_reference_id": "txn_123456789",
+    "note": "Paid. Please remove me from the shame list.",
+    "proof_image_url": "https://example.com/payment-proof.png"
+  },
+  "confirm_settlement": {
+    "settlement_id": "2d6b9a33-1234-4444-9999-998877665544"
+  },
+  "reject_settlement": {
+    "settlement_id": "2d6b9a33-1234-4444-9999-998877665544",
+    "reason": "Payment not received"
+  },
+  "mark_split_as_forgiven": {
+    "split_id": "7c6f5a44-1234-4444-9999-aabbccddeeff",
+    "reason": "Birthday mercy granted"
+  },
+  "send_payment_reminder": {
+    "split_id": "7c6f5a44-1234-4444-9999-aabbccddeeff",
+    "message": "Your wallet has left the group chat.",
+    "joke_level": 2
+  },
+  "create_deadbeat_event": {
+    "user_id": "0e4d2b6c-1234-4c99-8877-91aa55cc1001",
+    "split_id": "7c6f5a44-1234-4444-9999-aabbccddeeff",
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "creditor_user_id": "11111111-2222-3333-4444-555555555555",
+    "overdue_amount_cents": 2500,
+    "currency": "USD",
+    "due_at": "2026-08-10T20:00:00Z",
+    "shame_points": 75,
+    "funny_title_awarded": "Certified Bill Dodger",
+    "joke_message": "Sam has entered Deadbeat Territory."
+  },
+  "resolve_deadbeat_event": {
+    "deadbeat_event_id": "aa88bb99-1111-4444-9999-556677889900",
+    "resolved_at": "2026-08-12T12:00:00Z"
+  },
+  "create_leaderboard_snapshot": {
+    "scope": "friends",
+    "scope_id": "11111111-2222-3333-4444-555555555555",
+    "period_start": "2026-08-01T00:00:00Z",
+    "period_end": "2026-08-31T23:59:59Z",
+    "rankings": [
+      {
+        "rank": 1,
+        "user_id": "0e4d2b6c-1234-4c99-8877-91aa55cc1001",
+        "display_name": "Sam",
+        "total_overdue_cents": 4200,
+        "overdue_count": 5,
+        "max_days_late": 9,
+        "shame_points": 180,
+        "title": "Grandmaster of Ghosting"
+      }
+    ]
+  },
+  "create_notification": {
+    "user_id": "0e4d2b6c-1234-4c99-8877-91aa55cc1001",
+    "type": "payment_overdue",
+    "title": "Your wallet is under investigation",
+    "message": "You still owe USD 25.00 for Friday Pizza Damage.",
+    "related_payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "related_split_id": "7c6f5a44-1234-4444-9999-aabbccddeeff",
+    "metadata": {
+      "joke_level": 2,
+      "shame_points": 75
+    }
+  },
+  "mark_notification_as_read": {
+    "notification_id": "99aa88bb-1234-4444-9999-556677889900"
+  },
+  "create_payment_activity_log": {
+    "payment_id": "4a4e5f9c-1111-4444-8888-bb1234567890",
+    "actor_user_id": "11111111-2222-3333-4444-555555555555",
+    "action": "split.created",
+    "message": "Alex created an equal split.",
+    "metadata": {
+      "split_method": "equal",
+      "participant_count": 3,
+      "total_amount_cents": 9000
+    }
+  },
+  "create_group": {
+    "name": "Roommate Debt Club",
+    "description": "Where rent, groceries, and emotional damage are split equally.",
+    "avatar_url": "https://example.com/group-avatar.png"
+  },
+  "add_group_member": {
+    "group_id": "22aa33bb-4444-5555-8888-abcdefabcdef",
+    "user_id": "0e4d2b6c-1234-4c99-8877-91aa55cc1001",
+    "role": "member"
+  },
+  "remove_group_member": {
+    "group_id": "22aa33bb-4444-5555-8888-abcdefabcdef",
+    "user_id": "0e4d2b6c-1234-4c99-8877-91aa55cc1001"
+  },
+  "create_group_payment": {
+    "group_id": "22aa33bb-4444-5555-8888-abcdefabcdef",
+    "title": "Monthly Grocery Damage",
+    "description": "The fridge did not refill itself.",
+    "currency": "USD",
+    "due_at": "2026-08-31T20:00:00Z",
+    "split_method": "equal",
+    "items": [
+      {
+        "name": "Groceries",
+        "quantity": 1,
+        "unit_price_cents": 18000,
+        "category": "household"
+      }
+    ]
+  },
+  "update_privacy_settings": {
+    "show_on_friend_leaderboard": true,
+    "show_on_global_leaderboard": false,
+    "show_exact_overdue_amounts": false,
+    "allow_friend_requests_by_user_code": true,
+    "allow_friend_requests_by_qr": true
+  },
+  "create_payment_excuse": {
+    "split_id": "7c6f5a44-1234-4444-9999-aabbccddeeff",
+    "excuse_text": "My bank app is emotionally unavailable."
+  },
+  "react_to_excuse": {
+    "excuse_id": "55cc44bb-1234-4444-9999-778899001122",
+    "reaction": "legendary_excuse"
+  },
+  "create_shame_title": {
+    "title": "Grandmaster of Ghosting",
+    "min_score": 301,
+    "max_score": 600,
+    "description": "Awarded to users who treat due dates like vague suggestions."
+  }
+}
