@@ -7,3 +7,9 @@ export type PublicUser = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type PublicUserCard = {
+  id: string;
+  name: string;
+  image: string | null;
+};

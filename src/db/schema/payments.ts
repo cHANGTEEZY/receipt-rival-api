@@ -30,6 +30,13 @@ export const paymentStatusEnum = pgEnum('payment_status', [
   'cancelled',
 ]);
 
+export const splitStatusEnum = pgEnum('split_status', [
+  'pending',
+  'settled',
+  'forgiven',
+  'cancelled',
+]);
+
 export const payment = pgTable(
   'payment',
   {
@@ -120,9 +127,32 @@ export const paymentSplit = pgTable(
     paymentId: text('payment_id')
       .notNull()
       .references(() => payment.id, { onDelete: 'cascade' }),
+    debtorUserId: text('debtor_user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    creditorUserId: text('creditor_user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    amountCents: bigint('amount_cents', { mode: 'number' }).notNull(),
+    currency: char('currency', { length: 3 }).notNull().default('USD'),
+    status: splitStatusEnum('status').notNull().default('pending'),
+    dueAt: timestamp('due_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
   },
-  table => [index('payment_split_paymentId_idx').on(table.paymentId)],
+  table => [
+    index('payment_split_paymentId_idx').on(table.paymentId),
+    index('payment_split_debtorUserId_idx').on(table.debtorUserId),
+    index('payment_split_creditorUserId_idx').on(table.creditorUserId),
+    check('split_amount_positive', sql`${table.amountCents} > 0`),
+    check(
+      'no_self_split',
+      sql`${table.debtorUserId} <> ${table.creditorUserId}`,
+    ),
+  ],
 );
 
 export const paymentParticipant = pgTable(
@@ -152,6 +182,41 @@ export const paymentParticipant = pgTable(
   ],
 );
 
+export const paymentItemAssignment = pgTable(
+  'payment_item_assignment',
+  {
+    id: text('id').primaryKey(),
+    paymentId: text('payment_id')
+      .notNull()
+      .references(() => payment.id, { onDelete: 'cascade' }),
+    paymentItemId: text('payment_item_id')
+      .notNull()
+      .references(() => paymentItem.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    shareAmountCents: bigint('share_amount_cents', { mode: 'number' }).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  table => [
+    index('payment_item_assignment_paymentId_idx').on(table.paymentId),
+    index('payment_item_assignment_paymentItemId_idx').on(table.paymentItemId),
+    index('payment_item_assignment_userId_idx').on(table.userId),
+    unique('unique_payment_item_assignment').on(
+      table.paymentItemId,
+      table.userId,
+    ),
+    check(
+      'assignment_share_non_negative',
+      sql`${table.shareAmountCents} >= 0`,
+    ),
+  ],
+);
+
 export const paymentRelations = relations(payment, ({ one, many }) => ({
   creator: one(user, {
     fields: [payment.createdBy],
@@ -161,6 +226,7 @@ export const paymentRelations = relations(payment, ({ one, many }) => ({
   items: many(paymentItem),
   splits: many(paymentSplit),
   participants: many(paymentParticipant),
+  itemAssignments: many(paymentItemAssignment),
 }));
 
 export const paymentSplitRelations = relations(paymentSplit, ({ one }) => ({
@@ -168,13 +234,24 @@ export const paymentSplitRelations = relations(paymentSplit, ({ one }) => ({
     fields: [paymentSplit.paymentId],
     references: [payment.id],
   }),
+  debtor: one(user, {
+    fields: [paymentSplit.debtorUserId],
+    references: [user.id],
+    relationName: 'paymentSplitDebtor',
+  }),
+  creditor: one(user, {
+    fields: [paymentSplit.creditorUserId],
+    references: [user.id],
+    relationName: 'paymentSplitCreditor',
+  }),
 }));
 
-export const paymentItemRelations = relations(paymentItem, ({ one }) => ({
+export const paymentItemRelations = relations(paymentItem, ({ one, many }) => ({
   payment: one(payment, {
     fields: [paymentItem.paymentId],
     references: [payment.id],
   }),
+  assignments: many(paymentItemAssignment),
 }));
 
 export const paymentParticipantRelations = relations(
@@ -193,6 +270,25 @@ export const paymentParticipantRelations = relations(
       fields: [paymentParticipant.addedBy],
       references: [user.id],
       relationName: 'paymentParticipantAddedBy',
+    }),
+  }),
+);
+
+export const paymentItemAssignmentRelations = relations(
+  paymentItemAssignment,
+  ({ one }) => ({
+    payment: one(payment, {
+      fields: [paymentItemAssignment.paymentId],
+      references: [payment.id],
+    }),
+    item: one(paymentItem, {
+      fields: [paymentItemAssignment.paymentItemId],
+      references: [paymentItem.id],
+    }),
+    user: one(user, {
+      fields: [paymentItemAssignment.userId],
+      references: [user.id],
+      relationName: 'paymentItemAssignmentUser',
     }),
   }),
 );

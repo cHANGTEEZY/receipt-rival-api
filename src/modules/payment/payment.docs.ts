@@ -1,20 +1,15 @@
 import { resolver } from "hono-openapi";
 import { z } from "zod";
-import { publicPaymentSchema } from "./payment.validator";
+import {
+  publicParticipantSchema,
+  publicPaymentItemSchema,
+  publicPaymentSchema,
+  publicSplitSchema,
+} from "./payment.validator";
 
 export const paymentTags = ["Payments"];
-
-export const paymentResponseSchema = z.object({
-  success: z.literal(true),
-  data: publicPaymentSchema,
-  requestId: z.string(),
-});
-
-export const paymentListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(publicPaymentSchema),
-  requestId: z.string(),
-});
+export const splitsTags = ["Splits"];
+export const meTags = ["Me"];
 
 export const paymentErrorSchema = z.object({
   success: z.literal(false),
@@ -24,6 +19,63 @@ export const paymentErrorSchema = z.object({
   }),
   requestId: z.string(),
 });
+
+const paymentResponseSchema = z.object({
+  success: z.literal(true),
+  data: publicPaymentSchema,
+  requestId: z.string(),
+});
+
+const paymentListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(publicPaymentSchema),
+  requestId: z.string(),
+});
+
+const itemResponseSchema = z.object({
+  success: z.literal(true),
+  data: publicPaymentItemSchema,
+  requestId: z.string(),
+});
+
+const itemListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(publicPaymentItemSchema),
+  requestId: z.string(),
+});
+
+const participantResponseSchema = z.object({
+  success: z.literal(true),
+  data: publicParticipantSchema,
+  requestId: z.string(),
+});
+
+const participantListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(publicParticipantSchema),
+  requestId: z.string(),
+});
+
+const splitResponseSchema = z.object({
+  success: z.literal(true),
+  data: publicSplitSchema,
+  requestId: z.string(),
+});
+
+const splitListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(publicSplitSchema),
+  requestId: z.string(),
+});
+
+const authErrors = {
+  401: {
+    description: "Not authenticated",
+    content: {
+      "application/json": { schema: resolver(paymentErrorSchema) },
+    },
+  },
+};
 
 export const paymentDocs = {
   createPayment: {
@@ -36,27 +88,16 @@ export const paymentDocs = {
       201: {
         description: "Payment created",
         content: {
-          "application/json": {
-            schema: resolver(paymentResponseSchema),
-          },
+          "application/json": { schema: resolver(paymentResponseSchema) },
         },
       },
       400: {
         description: "Invalid request or create failed",
         content: {
-          "application/json": {
-            schema: resolver(paymentErrorSchema),
-          },
+          "application/json": { schema: resolver(paymentErrorSchema) },
         },
       },
-      401: {
-        description: "Not authenticated",
-        content: {
-          "application/json": {
-            schema: resolver(paymentErrorSchema),
-          },
-        },
-      },
+      ...authErrors,
     },
   },
   getPayment: {
@@ -69,25 +110,14 @@ export const paymentDocs = {
       200: {
         description: "Payment details",
         content: {
-          "application/json": {
-            schema: resolver(paymentResponseSchema),
-          },
+          "application/json": { schema: resolver(paymentResponseSchema) },
         },
       },
-      401: {
-        description: "Not authenticated",
-        content: {
-          "application/json": {
-            schema: resolver(paymentErrorSchema),
-          },
-        },
-      },
+      ...authErrors,
       404: {
         description: "Payment not found",
         content: {
-          "application/json": {
-            schema: resolver(paymentErrorSchema),
-          },
+          "application/json": { schema: resolver(paymentErrorSchema) },
         },
       },
     },
@@ -102,19 +132,374 @@ export const paymentDocs = {
       200: {
         description: "Payment list",
         content: {
+          "application/json": { schema: resolver(paymentListResponseSchema) },
+        },
+      },
+      ...authErrors,
+    },
+  },
+  updatePayment: {
+    tags: paymentTags,
+    summary: "Update a draft payment",
+    description: "Updates draft payment fields. Owner only.",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Payment updated",
+        content: {
+          "application/json": { schema: resolver(paymentResponseSchema) },
+        },
+      },
+      400: {
+        description: "Invalid request",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+      ...authErrors,
+      403: {
+        description: "Forbidden",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+      404: {
+        description: "Not found",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+    },
+  },
+  finalizePayment: {
+    tags: paymentTags,
+    summary: "Finalize a payment",
+    description:
+      "Marks a draft payment as finalized after splits exist. Blocks further edits.",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Payment finalized",
+        content: {
+          "application/json": { schema: resolver(paymentResponseSchema) },
+        },
+      },
+      400: {
+        description: "Cannot finalize",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+      ...authErrors,
+      403: {
+        description: "Forbidden",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+      404: {
+        description: "Not found",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+    },
+  },
+  addItem: {
+    tags: paymentTags,
+    summary: "Add payment item",
+    description: "Adds an item and recomputes the payment total. Owner/draft only.",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      201: {
+        description: "Item created",
+        content: {
+          "application/json": { schema: resolver(itemResponseSchema) },
+        },
+      },
+      400: {
+        description: "Invalid request",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+      ...authErrors,
+    },
+  },
+  listItems: {
+    tags: paymentTags,
+    summary: "List payment items",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Item list",
+        content: {
+          "application/json": { schema: resolver(itemListResponseSchema) },
+        },
+      },
+      ...authErrors,
+      404: {
+        description: "Not found",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+    },
+  },
+  deleteItem: {
+    tags: paymentTags,
+    summary: "Delete payment item",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Item deleted",
+        content: {
+          "application/json": {
+            schema: resolver(
+              z.object({
+                success: z.literal(true),
+                data: z.object({ id: z.string() }),
+                requestId: z.string(),
+              }),
+            ),
+          },
+        },
+      },
+      ...authErrors,
+      404: {
+        description: "Not found",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+    },
+  },
+  addParticipant: {
+    tags: paymentTags,
+    summary: "Add participant",
+    description: "Adds an accepted friend as a participant. Owner/draft only.",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      201: {
+        description: "Participant added",
+        content: {
+          "application/json": { schema: resolver(participantResponseSchema) },
+        },
+      },
+      400: {
+        description: "Invalid request",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+      ...authErrors,
+    },
+  },
+  listParticipants: {
+    tags: paymentTags,
+    summary: "List participants",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Participant list",
+        content: {
+          "application/json": {
+            schema: resolver(participantListResponseSchema),
+          },
+        },
+      },
+      ...authErrors,
+      404: {
+        description: "Not found",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+    },
+  },
+  removeParticipant: {
+    tags: paymentTags,
+    summary: "Remove participant",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Participant removed",
+        content: {
+          "application/json": {
+            schema: resolver(
+              z.object({
+                success: z.literal(true),
+                data: z.object({ userId: z.string() }),
+                requestId: z.string(),
+              }),
+            ),
+          },
+        },
+      },
+      ...authErrors,
+      404: {
+        description: "Not found",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+    },
+  },
+  createEqualSplit: {
+    tags: splitsTags,
+    summary: "Create equal splits",
+    description:
+      "Creates equal pending splits for debtors. Replaces existing pending splits.",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      201: {
+        description: "Splits created",
+        content: {
+          "application/json": { schema: resolver(splitListResponseSchema) },
+        },
+      },
+      400: {
+        description: "Invalid request",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+      ...authErrors,
+    },
+  },
+  createItemBasedSplit: {
+    tags: splitsTags,
+    summary: "Create item-based splits",
+    description:
+      "Assigns items to participants equally per item and creates debtor splits.",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      201: {
+        description: "Splits and assignments created",
+        content: {
+          "application/json": {
+            schema: resolver(
+              z.object({
+                success: z.literal(true),
+                data: z.object({
+                  splits: z.array(publicSplitSchema),
+                  assignments: z.array(
+                    z.object({
+                      id: z.string(),
+                      paymentId: z.string(),
+                      paymentItemId: z.string(),
+                      userId: z.string(),
+                      shareAmountCents: z.number().int(),
+                      createdAt: z.coerce.date(),
+                      updatedAt: z.coerce.date(),
+                    }),
+                  ),
+                }),
+                requestId: z.string(),
+              }),
+            ),
+          },
+        },
+      },
+      400: {
+        description: "Invalid request",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+      ...authErrors,
+    },
+  },
+  listSplits: {
+    tags: splitsTags,
+    summary: "List payment splits",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Split list",
+        content: {
+          "application/json": { schema: resolver(splitListResponseSchema) },
+        },
+      },
+      ...authErrors,
+      404: {
+        description: "Not found",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+    },
+  },
+  getSplit: {
+    tags: splitsTags,
+    summary: "Get a split",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Split details",
+        content: {
+          "application/json": { schema: resolver(splitResponseSchema) },
+        },
+      },
+      ...authErrors,
+      404: {
+        description: "Not found",
+        content: {
+          "application/json": { schema: resolver(paymentErrorSchema) },
+        },
+      },
+    },
+  },
+  listMyPayments: {
+    tags: meTags,
+    summary: "My payments",
+    description:
+      "Returns payments where the authenticated user is an active participant.",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Payment list",
+        content: {
           "application/json": {
             schema: resolver(paymentListResponseSchema),
           },
         },
       },
-      401: {
-        description: "Not authenticated",
+      ...authErrors,
+    },
+  },
+  listSplitsOwedByMe: {
+    tags: meTags,
+    summary: "Splits I owe",
+    description: "Pending splits where the authenticated user is the debtor.",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Split list",
         content: {
           "application/json": {
-            schema: resolver(paymentErrorSchema),
+            schema: resolver(splitListResponseSchema),
           },
         },
       },
+      ...authErrors,
+    },
+  },
+  listSplitsOwedToMe: {
+    tags: meTags,
+    summary: "Splits owed to me",
+    description: "Pending splits where the authenticated user is the creditor.",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Split list",
+        content: {
+          "application/json": {
+            schema: resolver(splitListResponseSchema),
+          },
+        },
+      },
+      ...authErrors,
     },
   },
 };
