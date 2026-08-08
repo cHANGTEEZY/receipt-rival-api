@@ -1,6 +1,6 @@
 {
-  "id": "c198cf70-2f52-4588-9d20-136f83c5de1a",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "17dc6e20-e773-4bac-a846-48739a2b54a0",
+  "prevId": "c198cf70-2f52-4588-9d20-136f83c5de1a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -371,9 +371,334 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.friend_invite": {
+      "name": "friend_invite",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "inviter_id": {
+          "name": "inviter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invite_token": {
+          "name": "invite_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "invite_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "accepted_by": {
+          "name": "accepted_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accepted_at": {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "friend_invite_inviterId_idx": {
+          "name": "friend_invite_inviterId_idx",
+          "columns": [
+            {
+              "expression": "inviter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "friend_invite_inviter_id_user_id_fk": {
+          "name": "friend_invite_inviter_id_user_id_fk",
+          "tableFrom": "friend_invite",
+          "tableTo": "user",
+          "columnsFrom": [
+            "inviter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "friend_invite_accepted_by_user_id_fk": {
+          "name": "friend_invite_accepted_by_user_id_fk",
+          "tableFrom": "friend_invite",
+          "tableTo": "user",
+          "columnsFrom": [
+            "accepted_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "friend_invite_invite_token_unique": {
+          "name": "friend_invite_invite_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "invite_token"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "friend_invite_not_self": {
+          "name": "friend_invite_not_self",
+          "value": "\"friend_invite\".\"accepted_by\" IS NULL OR \"friend_invite\".\"accepted_by\" <> \"friend_invite\".\"inviter_id\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.friendship": {
+      "name": "friendship",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "requester_id": {
+          "name": "requester_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "addressee_id": {
+          "name": "addressee_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_low_id": {
+          "name": "user_low_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_high_id": {
+          "name": "user_high_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "friendship_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "requested_at": {
+          "name": "requested_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "accepted_at": {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "removed_at": {
+          "name": "removed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "friendship_requesterId_idx": {
+          "name": "friendship_requesterId_idx",
+          "columns": [
+            {
+              "expression": "requester_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "friendship_addresseeId_idx": {
+          "name": "friendship_addresseeId_idx",
+          "columns": [
+            {
+              "expression": "addressee_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "friendship_requester_id_user_id_fk": {
+          "name": "friendship_requester_id_user_id_fk",
+          "tableFrom": "friendship",
+          "tableTo": "user",
+          "columnsFrom": [
+            "requester_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "friendship_addressee_id_user_id_fk": {
+          "name": "friendship_addressee_id_user_id_fk",
+          "tableFrom": "friendship",
+          "tableTo": "user",
+          "columnsFrom": [
+            "addressee_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "friendship_user_low_id_user_id_fk": {
+          "name": "friendship_user_low_id_user_id_fk",
+          "tableFrom": "friendship",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_low_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "friendship_user_high_id_user_id_fk": {
+          "name": "friendship_user_high_id_user_id_fk",
+          "tableFrom": "friendship",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_high_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_friendship_pair": {
+          "name": "unique_friendship_pair",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_low_id",
+            "user_high_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "no_self_friendship": {
+          "name": "no_self_friendship",
+          "value": "\"friendship\".\"requester_id\" <> \"friendship\".\"addressee_id\""
+        },
+        "normalized_friendship_order": {
+          "name": "normalized_friendship_order",
+          "value": "\"friendship\".\"user_low_id\" < \"friendship\".\"user_high_id\""
+        }
+      },
+      "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.friendship_status": {
+      "name": "friendship_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "accepted",
+        "removed"
+      ]
+    },
+    "public.invite_status": {
+      "name": "invite_status",
+      "schema": "public",
+      "values": [
+        "active",
+        "expired",
+        "accepted"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},

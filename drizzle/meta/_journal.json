@@ -5,8 +5,29 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1783031977557,
-      "tag": "0000_striped_captain_cross",
+      "when": 1786087385687,
+      "tag": "0000_small_kate_bishop",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786089990383,
+      "tag": "0001_motionless_banshee",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786092575245,
+      "tag": "0002_rapid_quicksilver",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786165912616,
+      "tag": "0003_oval_maria_hill",
       "breakpoints": true
     }
   ]

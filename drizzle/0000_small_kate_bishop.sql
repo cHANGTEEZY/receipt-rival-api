@@ -34,7 +34,9 @@ CREATE TABLE "user" (
 	"image" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "user_email_unique" UNIQUE("email")
+	"phone_number" text,
+	CONSTRAINT "user_email_unique" UNIQUE("email"),
+	CONSTRAINT "user_phone_number_unique" UNIQUE("phone_number")
 );
 --> statement-breakpoint
 CREATE TABLE "verification" (
