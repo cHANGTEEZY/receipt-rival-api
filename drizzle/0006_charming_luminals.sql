@@ -1,0 +1,2 @@
+ALTER TABLE "payment_item_assignment" ADD COLUMN "assigned_quantity" numeric(12, 3) DEFAULT '1' NOT NULL;--> statement-breakpoint
+ALTER TABLE "payment_item_assignment" ADD CONSTRAINT "assignment_quantity_positive" CHECK ("payment_item_assignment"."assigned_quantity" > 0);

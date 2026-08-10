@@ -26,6 +26,22 @@ paymentSplitRoutes.post(
   (c) => splitsController.createItemBasedSplit(c),
 );
 
+paymentSplitRoutes.post(
+  "/:paymentId/splits/percentage",
+  arcjetProtect(ajApi),
+  requireAuth(),
+  describeRoute(splitsDocs.createPercentageSplit),
+  (c) => splitsController.createPercentageSplit(c),
+);
+
+paymentSplitRoutes.post(
+  "/:paymentId/splits/custom",
+  arcjetProtect(ajApi),
+  requireAuth(),
+  describeRoute(splitsDocs.createCustomSplit),
+  (c) => splitsController.createCustomSplit(c),
+);
+
 paymentSplitRoutes.get(
   "/:paymentId/splits",
   arcjetProtect(ajApi),

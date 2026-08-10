@@ -2,8 +2,10 @@ import { resolver } from "hono-openapi";
 import type { OpenAPIV3_1 } from "openapi-types";
 import { z } from "zod";
 import {
+  createCustomSplitSchema,
   createEqualSplitSchema,
   createItemBasedSplitSchema,
+  createPercentageSplitSchema,
   publicItemAssignmentSchema,
   publicSplitSchema,
 } from "./splits.validator";
@@ -87,7 +89,7 @@ const itemBasedSplitRequestBody = {
           assignments: {
             type: "string" as const,
             description:
-              'Required JSON array: [{"paymentItemId":"...","participantUserIds":["..."]}]',
+              'Required JSON array: [{"paymentItemId":"...","allocations":[{"userId":"...","quantity":2}]}]. Each item\'s allocation quantities must sum to that item\'s quantity.',
           },
           dueAt: {
             type: "string" as const,
@@ -99,6 +101,70 @@ const itemBasedSplitRequestBody = {
     },
     "application/json": {
       schema: resolver(createItemBasedSplitSchema),
+    },
+  },
+};
+
+const percentageSplitRequestBody = {
+  content: {
+    "multipart/form-data": {
+      schema: {
+        type: "object" as const,
+        required: ["splits"],
+        properties: {
+          paymentImage: {
+            type: "string" as const,
+            format: "binary" as const,
+            description:
+              "Optional receipt image (JPEG, PNG, WebP, HEIC; max 10MB)",
+          },
+          splits: {
+            type: "string" as const,
+            description:
+              'Required JSON array: [{"debtorUserId":"...","percentage":60}]. Percentages must sum to 100.',
+          },
+          dueAt: {
+            type: "string" as const,
+            format: "date-time" as const,
+            description: "Optional due date (ISO 8601)",
+          },
+        },
+      },
+    },
+    "application/json": {
+      schema: resolver(createPercentageSplitSchema),
+    },
+  },
+};
+
+const customSplitRequestBody = {
+  content: {
+    "multipart/form-data": {
+      schema: {
+        type: "object" as const,
+        required: ["splits"],
+        properties: {
+          paymentImage: {
+            type: "string" as const,
+            format: "binary" as const,
+            description:
+              "Optional receipt image (JPEG, PNG, WebP, HEIC; max 10MB)",
+          },
+          splits: {
+            type: "string" as const,
+            description:
+              'Required JSON array: [{"debtorUserId":"...","amountCents":1500}]. Amounts must sum exactly to the payment total.',
+          },
+          dueAt: {
+            type: "string" as const,
+            format: "date-time" as const,
+            description: "Optional due date (ISO 8601)",
+          },
+        },
+      },
+    },
+    "application/json": {
+      schema: resolver(createCustomSplitSchema),
     },
   },
 };
@@ -129,9 +195,9 @@ export const splitsDocs = {
   },
   createItemBasedSplit: {
     tags: splitsTags,
-    summary: "Create item-based splits",
+    summary: "Create item-based (per-unit) splits",
     description:
-      "Assigns items to participants equally per item and creates debtor splits. Accepts multipart/form-data with optional paymentImage file, or JSON for backward compatibility.",
+      "Distributes each item's quantity across specific participants (e.g. 3 units -> 2 to Alice, 1 to Bob) and creates debtor splits from the resulting per-unit shares. Accepts multipart/form-data with optional paymentImage file, or JSON for backward compatibility.",
     security: [{ cookieAuth: [] }],
     requestBody: itemBasedSplitRequestBody as OpenAPIV3_1.RequestBodyObject,
     responses: {
@@ -150,6 +216,52 @@ export const splitsDocs = {
               }),
             ),
           },
+        },
+      },
+      400: {
+        description: "Invalid request",
+        content: {
+          "application/json": { schema: resolver(splitsErrorSchema) },
+        },
+      },
+      ...authErrors,
+    },
+  },
+  createPercentageSplit: {
+    tags: splitsTags,
+    summary: "Create percentage splits",
+    description:
+      "Splits the payment total proportionally by percentage per debtor. Replaces existing pending splits. Accepts multipart/form-data with optional paymentImage file, or JSON for backward compatibility.",
+    security: [{ cookieAuth: [] }],
+    requestBody: percentageSplitRequestBody as OpenAPIV3_1.RequestBodyObject,
+    responses: {
+      201: {
+        description: "Splits created",
+        content: {
+          "application/json": { schema: resolver(splitListResponseSchema) },
+        },
+      },
+      400: {
+        description: "Invalid request",
+        content: {
+          "application/json": { schema: resolver(splitsErrorSchema) },
+        },
+      },
+      ...authErrors,
+    },
+  },
+  createCustomSplit: {
+    tags: splitsTags,
+    summary: "Create custom amount splits",
+    description:
+      "Splits the payment total using exact custom amounts per debtor, which must sum to the payment total. Replaces existing pending splits. Accepts multipart/form-data with optional paymentImage file, or JSON for backward compatibility.",
+    security: [{ cookieAuth: [] }],
+    requestBody: customSplitRequestBody as OpenAPIV3_1.RequestBodyObject,
+    responses: {
+      201: {
+        description: "Splits created",
+        content: {
+          "application/json": { schema: resolver(splitListResponseSchema) },
         },
       },
       400: {

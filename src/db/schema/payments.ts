@@ -195,6 +195,9 @@ export const paymentItemAssignment = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
+    assignedQuantity: numeric('assigned_quantity', { precision: 12, scale: 3 })
+      .notNull()
+      .default('1'),
     shareAmountCents: bigint('share_amount_cents', { mode: 'number' }).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
@@ -213,6 +216,10 @@ export const paymentItemAssignment = pgTable(
     check(
       'assignment_share_non_negative',
       sql`${table.shareAmountCents} >= 0`,
+    ),
+    check(
+      'assignment_quantity_positive',
+      sql`${table.assignedQuantity} > 0`,
     ),
   ],
 );

@@ -10,12 +10,15 @@ import {
   uploadPaymentReceiptImage,
 } from "../../lib/file-upload";
 import {
+  allocateByWeight,
   allocateEqualCents,
   splitsRepository,
 } from "./splits.repository";
 import type {
+  CreateCustomSplitInput,
   CreateEqualSplitInput,
   CreateItemBasedSplitInput,
+  CreatePercentageSplitInput,
   PublicItemAssignment,
   PublicSplit,
 } from "./splits.types";
@@ -85,6 +88,42 @@ async function attachReceiptImageIfPresent(
       status: 502,
     };
   }
+}
+
+function validateDebtors(
+  splits: Array<{ debtorUserId: string }>,
+  activeUserIds: Set<string>,
+  ownerId: string,
+): ServiceError | null {
+  const seen = new Set<string>();
+  for (const split of splits) {
+    if (!activeUserIds.has(split.debtorUserId)) {
+      return {
+        ok: false,
+        code: "VALIDATION_ERROR",
+        message: `User ${split.debtorUserId} is not an active participant`,
+        status: 400,
+      };
+    }
+    if (split.debtorUserId === ownerId) {
+      return {
+        ok: false,
+        code: "VALIDATION_ERROR",
+        message: "Creditor cannot also be a debtor on the same split",
+        status: 400,
+      };
+    }
+    if (seen.has(split.debtorUserId)) {
+      return {
+        ok: false,
+        code: "VALIDATION_ERROR",
+        message: `User ${split.debtorUserId} appears more than once`,
+        status: 400,
+      };
+    }
+    seen.add(split.debtorUserId);
+  }
+  return null;
 }
 
 export const splitsService = {
@@ -230,6 +269,7 @@ export const splitsService = {
     const assignmentRows: Array<{
       paymentItemId: string;
       userId: string;
+      assignedQuantity: number;
       shareAmountCents: number;
     }> = [];
     const totalsByUser = new Map<string, number>();
@@ -238,24 +278,48 @@ export const splitsService = {
       const item = itemById.get(assignment.paymentItemId);
       if (!item) continue;
 
-      const uniqueUsers = [...new Set(assignment.participantUserIds)];
-      for (const participantUserId of uniqueUsers) {
-        if (!activeUserIds.has(participantUserId)) {
+      const mergedAllocations = new Map<string, number>();
+      for (const allocation of assignment.allocations) {
+        if (!activeUserIds.has(allocation.userId)) {
           return {
             ok: false,
             code: "VALIDATION_ERROR",
-            message: `User ${participantUserId} is not an active participant`,
+            message: `User ${allocation.userId} is not an active participant`,
             status: 400,
           };
         }
+        mergedAllocations.set(
+          allocation.userId,
+          (mergedAllocations.get(allocation.userId) ?? 0) +
+            allocation.quantity,
+        );
       }
 
-      const shares = allocateEqualCents(item.totalPriceCents, uniqueUsers.length);
-      uniqueUsers.forEach((participantUserId, index) => {
+      const itemQuantity = Number(item.quantity);
+      const allocatedQuantity = [...mergedAllocations.values()].reduce(
+        (sum, quantity) => sum + quantity,
+        0,
+      );
+      if (Math.abs(allocatedQuantity - itemQuantity) > 0.001) {
+        return {
+          ok: false,
+          code: "VALIDATION_ERROR",
+          message: `Allocated quantity for item "${item.name}" (${allocatedQuantity}) must equal the item's quantity (${itemQuantity})`,
+          status: 400,
+        };
+      }
+
+      const userIds = [...mergedAllocations.keys()];
+      const quantities = userIds.map((id) => mergedAllocations.get(id)!);
+      const shares = allocateByWeight(item.totalPriceCents, quantities);
+
+      userIds.forEach((participantUserId, index) => {
         const shareAmountCents = shares[index] ?? 0;
+        const assignedQuantity = quantities[index] ?? 0;
         assignmentRows.push({
           paymentItemId: assignment.paymentItemId,
           userId: participantUserId,
+          assignedQuantity,
           shareAmountCents,
         });
         totalsByUser.set(
@@ -305,12 +369,165 @@ export const splitsService = {
           paymentId: row.paymentId,
           paymentItemId: row.paymentItemId,
           userId: row.userId,
+          assignedQuantity: Number(row.assignedQuantity),
           shareAmountCents: row.shareAmountCents,
           createdAt: row.createdAt,
           updatedAt: row.updatedAt,
         })),
       },
     };
+  },
+
+  async createPercentageSplit(
+    paymentId: string,
+    userId: string,
+    input: CreatePercentageSplitInput,
+    paymentImage?: File,
+  ): Promise<ServiceSuccess<PublicSplit[]> | ServiceError> {
+    const access = await requireOwnerDraft(paymentId, userId);
+    if (!access.ok) return access;
+
+    const receiptResult = await attachReceiptImageIfPresent(
+      paymentId,
+      userId,
+      paymentImage,
+    );
+    if (!receiptResult.ok) return receiptResult;
+
+    const paymentRecord = access.data;
+    if (paymentRecord.totalAmountCents <= 0) {
+      return {
+        ok: false,
+        code: "VALIDATION_ERROR",
+        message: "Payment total must be greater than zero to create splits",
+        status: 400,
+      };
+    }
+
+    const participants =
+      await paymentRepository.listActiveParticipants(paymentId);
+    const activeUserIds = new Set(participants.map((p) => p.userId));
+
+    const debtorError = validateDebtors(
+      input.splits,
+      activeUserIds,
+      paymentRecord.createdBy,
+    );
+    if (debtorError) return debtorError;
+
+    const totalPercentage = input.splits.reduce(
+      (sum, split) => sum + split.percentage,
+      0,
+    );
+    if (Math.abs(totalPercentage - 100) > 0.01) {
+      return {
+        ok: false,
+        code: "VALIDATION_ERROR",
+        message: `Percentages must sum to 100 (got ${totalPercentage})`,
+        status: 400,
+      };
+    }
+
+    const amounts = allocateByWeight(
+      paymentRecord.totalAmountCents,
+      input.splits.map((split) => split.percentage),
+    );
+    const dueAt = input.dueAt ?? paymentRecord.dueAt;
+
+    const splits = input.splits
+      .map((split, index) => ({
+        debtorUserId: split.debtorUserId,
+        creditorUserId: paymentRecord.createdBy,
+        amountCents: amounts[index] ?? 0,
+        currency: paymentRecord.currency,
+        dueAt,
+      }))
+      .filter((split) => split.amountCents > 0);
+
+    if (splits.length === 0) {
+      return {
+        ok: false,
+        code: "VALIDATION_ERROR",
+        message: "Computed split amounts must be greater than zero",
+        status: 400,
+      };
+    }
+
+    const created = await splitsRepository.replacePendingSplits(
+      paymentId,
+      splits,
+      "percentage",
+    );
+
+    return { ok: true, data: created.map(toPublicSplit) };
+  },
+
+  async createCustomSplit(
+    paymentId: string,
+    userId: string,
+    input: CreateCustomSplitInput,
+    paymentImage?: File,
+  ): Promise<ServiceSuccess<PublicSplit[]> | ServiceError> {
+    const access = await requireOwnerDraft(paymentId, userId);
+    if (!access.ok) return access;
+
+    const receiptResult = await attachReceiptImageIfPresent(
+      paymentId,
+      userId,
+      paymentImage,
+    );
+    if (!receiptResult.ok) return receiptResult;
+
+    const paymentRecord = access.data;
+    if (paymentRecord.totalAmountCents <= 0) {
+      return {
+        ok: false,
+        code: "VALIDATION_ERROR",
+        message: "Payment total must be greater than zero to create splits",
+        status: 400,
+      };
+    }
+
+    const participants =
+      await paymentRepository.listActiveParticipants(paymentId);
+    const activeUserIds = new Set(participants.map((p) => p.userId));
+
+    const debtorError = validateDebtors(
+      input.splits,
+      activeUserIds,
+      paymentRecord.createdBy,
+    );
+    if (debtorError) return debtorError;
+
+    const totalAmountCents = input.splits.reduce(
+      (sum, split) => sum + split.amountCents,
+      0,
+    );
+    if (totalAmountCents !== paymentRecord.totalAmountCents) {
+      return {
+        ok: false,
+        code: "VALIDATION_ERROR",
+        message: `Custom amounts must sum to the payment total (${paymentRecord.totalAmountCents} cents), got ${totalAmountCents}`,
+        status: 400,
+      };
+    }
+
+    const dueAt = input.dueAt ?? paymentRecord.dueAt;
+    const splits = input.splits.map((split) => ({
+      debtorUserId: split.debtorUserId,
+      creditorUserId: paymentRecord.createdBy,
+      amountCents: split.amountCents,
+      currency: paymentRecord.currency,
+      dueAt,
+    }));
+
+    const created = await splitsRepository.replacePendingSplits(
+      paymentId,
+      splits,
+      "custom",
+    );
+
+    return { ok: true, data: created.map(toPublicSplit) };
   },
 
   async listByPayment(

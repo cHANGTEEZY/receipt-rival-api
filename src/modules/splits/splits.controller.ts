@@ -2,8 +2,10 @@ import type { Context } from "hono";
 import { unauthorizedError } from "../../shared/errors/http.error";
 import type { AppVariables } from "../../shared/types/app.types";
 import {
+  parseCustomSplitForm,
   parseEqualSplitForm,
   parseItemBasedSplitForm,
+  parsePercentageSplitForm,
   SplitFormParseError,
 } from "./splits.multipart";
 import { splitsService } from "./splits.service";
@@ -123,6 +125,106 @@ export const splitsController = {
     }
 
     const result = await splitsService.createItemBasedSplit(
+      paymentId,
+      currentUser.id,
+      parsed.input,
+      parsed.paymentImage,
+    );
+    if (!result.ok) return serviceError(c, result);
+
+    return c.json(
+      {
+        success: true,
+        data: result.data,
+        requestId: c.get("requestId"),
+      },
+      201,
+    );
+  },
+
+  async createPercentageSplit(c: SplitsContext) {
+    const currentUser = c.get("user");
+    if (!currentUser) {
+      const { body, status } = unauthorizedError(c.get("requestId"));
+      return c.json(body, status);
+    }
+
+    const paymentId = c.req.param("paymentId");
+    if (!paymentId) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Payment id is required",
+          },
+          requestId: c.get("requestId"),
+        },
+        400,
+      );
+    }
+
+    let parsed;
+    try {
+      parsed = await parsePercentageSplitForm(c);
+    } catch (error) {
+      if (error instanceof SplitFormParseError) {
+        return formParseError(c, error);
+      }
+      throw error;
+    }
+
+    const result = await splitsService.createPercentageSplit(
+      paymentId,
+      currentUser.id,
+      parsed.input,
+      parsed.paymentImage,
+    );
+    if (!result.ok) return serviceError(c, result);
+
+    return c.json(
+      {
+        success: true,
+        data: result.data,
+        requestId: c.get("requestId"),
+      },
+      201,
+    );
+  },
+
+  async createCustomSplit(c: SplitsContext) {
+    const currentUser = c.get("user");
+    if (!currentUser) {
+      const { body, status } = unauthorizedError(c.get("requestId"));
+      return c.json(body, status);
+    }
+
+    const paymentId = c.req.param("paymentId");
+    if (!paymentId) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Payment id is required",
+          },
+          requestId: c.get("requestId"),
+        },
+        400,
+      );
+    }
+
+    let parsed;
+    try {
+      parsed = await parseCustomSplitForm(c);
+    } catch (error) {
+      if (error instanceof SplitFormParseError) {
+        return formParseError(c, error);
+      }
+      throw error;
+    }
+
+    const result = await splitsService.createCustomSplit(
       paymentId,
       currentUser.id,
       parsed.input,

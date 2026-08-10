@@ -43,6 +43,13 @@
       "when": 1786200286111,
       "tag": "0005_outgoing_jean_grey",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786386830532,
+      "tag": "0006_charming_luminals",
+      "breakpoints": true
     }
   ]
 }

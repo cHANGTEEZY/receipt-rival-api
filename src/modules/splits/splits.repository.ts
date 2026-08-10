@@ -15,6 +15,35 @@ export function allocateEqualCents(totalCents: number, count: number) {
   );
 }
 
+/**
+ * Distributes totalCents proportionally across weights using the largest-remainder
+ * method, so every cent is accounted for even when the proportional shares aren't
+ * whole numbers (e.g. percentage splits, per-unit item quantities).
+ */
+export function allocateByWeight(totalCents: number, weights: number[]) {
+  if (weights.length === 0) return [];
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  if (totalWeight <= 0) return weights.map(() => 0);
+
+  const raw = weights.map((weight) => (totalCents * weight) / totalWeight);
+  const floors = raw.map((value) => Math.floor(value));
+  const allocated = floors.reduce((sum, value) => sum + value, 0);
+  const remainder = totalCents - allocated;
+
+  const order = raw
+    .map((value, index) => ({ index, frac: value - floors[index]! }))
+    .sort((a, b) => b.frac - a.frac);
+
+  const result = [...floors];
+  for (let i = 0; i < remainder; i++) {
+    const target = order[i % order.length]!.index;
+    result[target] = (result[target] ?? 0) + 1;
+  }
+  return result;
+}
+
+export type SplitMethod = "equal" | "itemized" | "percentage" | "custom";
+
 export const splitsRepository = {
   async listByPayment(paymentId: string) {
     return db
@@ -69,7 +98,7 @@ export const splitsRepository = {
       currency: string;
       dueAt: Date | null;
     }>,
-    splitMethod: "equal" | "itemized",
+    splitMethod: SplitMethod,
   ) {
     return db.transaction(async (tx) => {
       await tx
@@ -114,6 +143,7 @@ export const splitsRepository = {
     assignments: Array<{
       paymentItemId: string;
       userId: string;
+      assignedQuantity: number;
       shareAmountCents: number;
     }>,
     splits: Array<{
@@ -140,6 +170,7 @@ export const splitsRepository = {
                   paymentId,
                   paymentItemId: assignment.paymentItemId,
                   userId: assignment.userId,
+                  assignedQuantity: String(assignment.assignedQuantity),
                   shareAmountCents: assignment.shareAmountCents,
                 })),
               )
