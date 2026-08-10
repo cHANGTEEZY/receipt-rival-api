@@ -13,3 +13,13 @@ export type PublicUserCard = {
   name: string;
   image: string | null;
 };
+
+export type FriendRequestStatus = "pending" | "accepted" | null;
+
+export type FriendRequestDirection = "sent" | "received" | null;
+
+export type PublicUserSearchResult = PublicUser & {
+  friendRequestStatus: FriendRequestStatus;
+  friendshipId: string | null;
+  requestDirection: FriendRequestDirection;
+};

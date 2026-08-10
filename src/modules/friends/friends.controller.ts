@@ -44,6 +44,7 @@ export const friendsController = {
     }
 
     const { userId } = c.req.valid("json" as never) as { userId: string };
+
     const result = await friendsService.sendRequest(currentUser.id, userId);
 
     if (!result.ok) {
@@ -135,6 +136,51 @@ export const friendsController = {
     }
 
     const result = await friendsService.rejectRequest(
+      currentUser.id,
+      friendshipId,
+    );
+
+    if (!result.ok) {
+      return c.json(
+        {
+          success: false,
+          error: { code: result.code, message: result.message },
+          requestId: c.get("requestId"),
+        },
+        result.status,
+      );
+    }
+
+    return c.json({
+      success: true,
+      data: result.data,
+      requestId: c.get("requestId"),
+    });
+  },
+
+  async cancelRequest(c: FriendsContext) {
+    const currentUser = c.get("user");
+    if (!currentUser) {
+      const { body, status } = unauthorizedError(c.get("requestId"));
+      return c.json(body, status);
+    }
+
+    const friendshipId = c.req.param("friendshipId");
+    if (!friendshipId) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Friendship id is required",
+          },
+          requestId: c.get("requestId"),
+        },
+        400,
+      );
+    }
+
+    const result = await friendsService.cancelRequest(
       currentUser.id,
       friendshipId,
     );

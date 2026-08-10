@@ -188,6 +188,47 @@ export const friendsDocs = {
       },
     },
   },
+  cancelRequest: {
+    tags: friendsTags,
+    summary: "Cancel friend request",
+    description:
+      "Cancels a pending friend request that you sent to another user.",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Request cancelled",
+        content: {
+          "application/json": {
+            schema: resolver(
+              z.object({
+                success: z.literal(true),
+                data: z.object({ id: z.string() }),
+                requestId: z.string(),
+              }),
+            ),
+          },
+        },
+      },
+      401: {
+        description: "Not authenticated",
+        content: {
+          "application/json": { schema: resolver(friendsErrorSchema) },
+        },
+      },
+      403: {
+        description: "Not allowed",
+        content: {
+          "application/json": { schema: resolver(friendsErrorSchema) },
+        },
+      },
+      404: {
+        description: "Request not found",
+        content: {
+          "application/json": { schema: resolver(friendsErrorSchema) },
+        },
+      },
+    },
+  },
   removeFriend: {
     tags: friendsTags,
     summary: "Remove friend",

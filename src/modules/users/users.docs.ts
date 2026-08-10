@@ -1,6 +1,10 @@
 import { resolver } from "hono-openapi";
 import { z } from "zod";
-import { publicUserCardSchema, publicUserSchema } from "./users.validator";
+import {
+  publicUserCardSchema,
+  publicUserSchema,
+  publicUserSearchResultSchema,
+} from "./users.validator";
 
 export const usersTags = ["Users"];
 
@@ -18,7 +22,7 @@ export const userCardResponseSchema = z.object({
 
 export const userListResponseSchema = z.object({
   success: z.literal(true),
-  data: z.array(publicUserSchema),
+  data: z.array(publicUserSearchResultSchema),
   requestId: z.string(),
 });
 
@@ -67,7 +71,8 @@ export const usersDocs = {
   searchUsers: {
     tags: usersTags,
     summary: "Search users",
-    description: "Search users by name or email. Excludes the current user.",
+    description:
+      "Search users by name or email. Excludes the current user and includes friendship status when a relationship exists.",
     security: [{ cookieAuth: [] }],
     responses: {
       200: {

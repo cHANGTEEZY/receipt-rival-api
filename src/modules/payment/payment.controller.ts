@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { unauthorizedError } from "../../shared/errors/http.error";
 import type { AppVariables } from "../../shared/types/app.types";
+import type { ServiceError } from "../payment/payment.access";
 import { paymentService } from "./payment.service";
 import type {
   AddParticipantInput,
@@ -11,10 +12,7 @@ import type {
 
 type PaymentContext = Context<{ Variables: AppVariables }>;
 
-function serviceError(
-  c: PaymentContext,
-  result: { code: string; message: string; status: 400 | 403 | 404 },
-) {
+function serviceError(c: PaymentContext, result: ServiceError) {
   return c.json(
     {
       success: false,

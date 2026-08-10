@@ -8,7 +8,7 @@ export type ServiceError = {
   ok: false;
   code: string;
   message: string;
-  status: 400 | 403 | 404;
+  status: 400 | 403 | 404 | 502;
 };
 
 export type ServiceSuccess<T> = { ok: true; data: T };

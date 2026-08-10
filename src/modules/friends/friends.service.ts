@@ -226,6 +226,41 @@ export const friendsService = {
     return { ok: true, data: { id: record.id } };
   },
 
+  async cancelRequest(
+    userId: string,
+    friendshipId: string,
+  ): Promise<ServiceSuccess<{ id: string }> | ServiceError> {
+    const existing = await friendsRepository.findById(friendshipId);
+    if (!existing || existing.status !== "pending") {
+      return {
+        ok: false,
+        code: "NOT_FOUND",
+        message: "Friend request not found",
+        status: 404,
+      };
+    }
+    if (existing.requesterId !== userId) {
+      return {
+        ok: false,
+        code: "FORBIDDEN",
+        message: "Only the sender can cancel this request",
+        status: 403,
+      };
+    }
+
+    const record = await friendsRepository.rejectOrRemove(friendshipId);
+    if (!record) {
+      return {
+        ok: false,
+        code: "UPDATE_FAILED",
+        message: "Could not cancel friend request",
+        status: 400,
+      };
+    }
+
+    return { ok: true, data: { id: record.id } };
+  },
+
   async removeFriend(
     userId: string,
     friendUserId: string,

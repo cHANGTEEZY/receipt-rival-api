@@ -1,5 +1,11 @@
 import { usersRepository } from "./users.repository";
-import type { PublicUser, PublicUserCard } from "./users.types";
+import type {
+  FriendRequestDirection,
+  FriendRequestStatus,
+  PublicUser,
+  PublicUserCard,
+  PublicUserSearchResult,
+} from "./users.types";
 
 function toPublicUser(record: {
   id: string;
@@ -46,8 +52,58 @@ export const usersService = {
     return toPublicUserCard(record);
   },
 
-  async searchUsers(query: string, currentUserId: string) {
+  async searchUsers(
+    query: string,
+    currentUserId: string,
+  ): Promise<PublicUserSearchResult[]> {
     const records = await usersRepository.search(query, currentUserId);
-    return records.map(toPublicUser);
+    return records.map((record) => toPublicUserSearchResult(record, currentUserId));
   },
 };
+
+function toFriendRequestStatus(
+  status: "pending" | "accepted" | "removed" | null,
+): FriendRequestStatus {
+  if (status === "pending" || status === "accepted") return status;
+  return null;
+}
+
+function toRequestDirection(
+  status: "pending" | "accepted" | "removed" | null,
+  requesterId: string | null,
+  currentUserId: string,
+): FriendRequestDirection {
+  if (status !== "pending" || !requesterId) return null;
+  if (requesterId === currentUserId) return "sent";
+  return "received";
+}
+
+function toPublicUserSearchResult(
+  record: {
+    id: string;
+    name: string;
+    email: string;
+    emailVerified: boolean;
+    image: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    friendshipId: string | null;
+    friendshipStatus: "pending" | "accepted" | "removed" | null;
+    friendshipRequesterId: string | null;
+  },
+  currentUserId: string,
+): PublicUserSearchResult {
+  const friendRequestStatus = toFriendRequestStatus(record.friendshipStatus);
+
+  return {
+    ...toPublicUser(record),
+    friendRequestStatus,
+    friendshipId:
+      friendRequestStatus === null ? null : (record.friendshipId ?? null),
+    requestDirection: toRequestDirection(
+      record.friendshipStatus,
+      record.friendshipRequesterId,
+      currentUserId,
+    ),
+  };
+}

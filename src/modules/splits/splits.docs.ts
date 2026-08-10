@@ -1,6 +1,9 @@
 import { resolver } from "hono-openapi";
+import type { OpenAPIV3_1 } from "openapi-types";
 import { z } from "zod";
 import {
+  createEqualSplitSchema,
+  createItemBasedSplitSchema,
   publicItemAssignmentSchema,
   publicSplitSchema,
 } from "./splits.validator";
@@ -37,13 +40,77 @@ const authErrors = {
   },
 };
 
+const equalSplitRequestBody = {
+  content: {
+    "multipart/form-data": {
+      schema: {
+        type: "object" as const,
+        properties: {
+          paymentImage: {
+            type: "string" as const,
+            format: "binary" as const,
+            description:
+              "Optional receipt image (JPEG, PNG, WebP, HEIC; max 10MB)",
+          },
+          debtorUserIds: {
+            type: "string" as const,
+            description:
+              'Optional JSON array of user ids, e.g. ["user_abc","user_def"]',
+          },
+          dueAt: {
+            type: "string" as const,
+            format: "date-time" as const,
+            description: "Optional due date (ISO 8601)",
+          },
+        },
+      },
+    },
+    "application/json": {
+      schema: resolver(createEqualSplitSchema),
+    },
+  },
+};
+
+const itemBasedSplitRequestBody = {
+  content: {
+    "multipart/form-data": {
+      schema: {
+        type: "object" as const,
+        required: ["assignments"],
+        properties: {
+          paymentImage: {
+            type: "string" as const,
+            format: "binary" as const,
+            description:
+              "Optional receipt image (JPEG, PNG, WebP, HEIC; max 10MB)",
+          },
+          assignments: {
+            type: "string" as const,
+            description:
+              'Required JSON array: [{"paymentItemId":"...","participantUserIds":["..."]}]',
+          },
+          dueAt: {
+            type: "string" as const,
+            format: "date-time" as const,
+            description: "Optional due date (ISO 8601)",
+          },
+        },
+      },
+    },
+    "application/json": {
+      schema: resolver(createItemBasedSplitSchema),
+    },
+  },
+};
+
 export const splitsDocs = {
   createEqualSplit: {
     tags: splitsTags,
     summary: "Create equal splits",
     description:
-      "Creates equal pending splits for debtors. Replaces existing pending splits.",
+      "Creates equal pending splits for debtors. Replaces existing pending splits. Accepts multipart/form-data with optional paymentImage file, or JSON for backward compatibility.",
     security: [{ cookieAuth: [] }],
+    requestBody: equalSplitRequestBody as OpenAPIV3_1.RequestBodyObject,
     responses: {
       201: {
         description: "Splits created",
@@ -64,8 +131,9 @@ export const splitsDocs = {
     tags: splitsTags,
     summary: "Create item-based splits",
     description:
-      "Assigns items to participants equally per item and creates debtor splits.",
+      "Assigns items to participants equally per item and creates debtor splits. Accepts multipart/form-data with optional paymentImage file, or JSON for backward compatibility.",
     security: [{ cookieAuth: [] }],
+    requestBody: itemBasedSplitRequestBody as OpenAPIV3_1.RequestBodyObject,
     responses: {
       201: {
         description: "Splits and assignments created",

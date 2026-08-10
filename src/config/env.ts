@@ -84,9 +84,26 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.string().default("http://localhost:3000"),
   ARCJET_KEY: z.string().min(1),
   ARCJET_ENV: z.enum(["development", "production"]).default("development"),
+  IMAGEKIT_URL_ENDPOINT: z.string().url().optional(),
+  IMAGEKIT_BASE_URL: z.string().url().optional(),
+  IMAGEKIT_PUBLIC_KEY: z.string().min(1),
+  IMAGEKIT_PRIVATE_KEY: z.string().min(1),
 });
 
-const raw = envSchema.parse(process.env);
+const parsed = envSchema.parse(process.env);
+
+const imagekitUrlEndpoint =
+  parsed.IMAGEKIT_URL_ENDPOINT ?? parsed.IMAGEKIT_BASE_URL;
+if (!imagekitUrlEndpoint) {
+  throw new Error(
+    "Set IMAGEKIT_URL_ENDPOINT or IMAGEKIT_BASE_URL (e.g. https://ik.imagekit.io/your_id)",
+  );
+}
+
+export const env = {
+  ...parsed,
+  IMAGEKIT_URL_ENDPOINT: imagekitUrlEndpoint,
+};
 
 /**
  * Normalize an Origin for allow-list checks.
@@ -116,20 +133,20 @@ export function normalizeOrigin(url: string): string {
 
 export const trustedFrontendOrigins: string[] = (() => {
   const expo =
-    raw.NODE_ENV === "development"
+    env.NODE_ENV === "development"
       ? [...EXPO_APP_ORIGINS, ...EXPO_DEV_ORIGINS]
       : [...EXPO_APP_ORIGINS];
 
-  if (normalizeOrigin(raw.CORS_ORIGIN) === "*") {
+  if (normalizeOrigin(env.CORS_ORIGIN) === "*") {
     return [...new Set([...LOCAL_DEV_ORIGINS, ...expo])];
   }
-  const fromEnv = raw.CORS_ORIGIN.split(",")
+  const fromEnv = env.CORS_ORIGIN.split(",")
     .map(normalizeOrigin)
     .filter(Boolean);
   return [...new Set([...LOCAL_DEV_ORIGINS, ...fromEnv, ...expo])];
 })();
 
-export const corsCredentialsEnabled = normalizeOrigin(raw.CORS_ORIGIN) !== "*";
+export const corsCredentialsEnabled = normalizeOrigin(env.CORS_ORIGIN) !== "*";
 
 /** Exact or Expo/wildcard match for CORS allow-lists (Better Auth has its own matcher). */
 export function isTrustedFrontendOrigin(origin: string): boolean {
@@ -137,10 +154,8 @@ export function isTrustedFrontendOrigin(origin: string): boolean {
   if (!normalized || normalized === "null") return false;
   if (trustedFrontendOrigins.includes(normalized)) return true;
   if (normalized.startsWith("myapp://")) return true;
-  if (raw.NODE_ENV === "development" && normalized.startsWith("exp://")) {
+  if (env.NODE_ENV === "development" && normalized.startsWith("exp://")) {
     return true;
   }
   return false;
 }
-
-export const env = raw;

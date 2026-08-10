@@ -6,6 +6,10 @@ import {
 } from "../payment/payment.access";
 import { paymentRepository } from "../payment/payment.repository";
 import {
+  ImageUploadError,
+  uploadPaymentReceiptImage,
+} from "../../lib/file-upload";
+import {
   allocateEqualCents,
   splitsRepository,
 } from "./splits.repository";
@@ -35,14 +39,70 @@ function toPublicSplit(record: SplitRecord): PublicSplit {
   };
 }
 
+async function attachReceiptImageIfPresent(
+  paymentId: string,
+  userId: string,
+  paymentImage?: File,
+): Promise<ServiceSuccess<void> | ServiceError> {
+  if (!paymentImage) {
+    return { ok: true, data: undefined };
+  }
+
+  try {
+    const uploaded = await uploadPaymentReceiptImage({
+      paymentId,
+      userId,
+      file: paymentImage,
+    });
+
+    const updated = await paymentRepository.updateDraft(paymentId, {
+      receiptImageUrl: uploaded.url,
+    });
+    if (!updated) {
+      return {
+        ok: false,
+        code: "UPDATE_FAILED",
+        message: "Could not save receipt image on payment",
+        status: 400,
+      };
+    }
+
+    return { ok: true, data: undefined };
+  } catch (error) {
+    if (error instanceof ImageUploadError) {
+      return {
+        ok: false,
+        code: error.code,
+        message: error.message,
+        status: error.status,
+      };
+    }
+
+    return {
+      ok: false,
+      code: "IMAGE_UPLOAD_FAILED",
+      message: "Failed to upload receipt image",
+      status: 502,
+    };
+  }
+}
+
 export const splitsService = {
   async createEqualSplit(
     paymentId: string,
     userId: string,
     input: CreateEqualSplitInput,
+    paymentImage?: File,
   ): Promise<ServiceSuccess<PublicSplit[]> | ServiceError> {
     const access = await requireOwnerDraft(paymentId, userId);
     if (!access.ok) return access;
+
+    const receiptResult = await attachReceiptImageIfPresent(
+      paymentId,
+      userId,
+      paymentImage,
+    );
+    if (!receiptResult.ok) return receiptResult;
 
     const paymentRecord = access.data;
     if (paymentRecord.totalAmountCents <= 0) {
@@ -132,6 +192,7 @@ export const splitsService = {
     paymentId: string,
     userId: string,
     input: CreateItemBasedSplitInput,
+    paymentImage?: File,
   ): Promise<
     ServiceSuccess<{
       splits: PublicSplit[];
@@ -140,6 +201,13 @@ export const splitsService = {
   > {
     const access = await requireOwnerDraft(paymentId, userId);
     if (!access.ok) return access;
+
+    const receiptResult = await attachReceiptImageIfPresent(
+      paymentId,
+      userId,
+      paymentImage,
+    );
+    if (!receiptResult.ok) return receiptResult;
 
     const paymentRecord = access.data;
     const participants =

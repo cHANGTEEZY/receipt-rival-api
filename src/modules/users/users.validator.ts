@@ -16,6 +16,12 @@ export const publicUserCardSchema = z.object({
   image: z.string().nullable(),
 });
 
+export const publicUserSearchResultSchema = publicUserSchema.extend({
+  friendRequestStatus: z.enum(["pending", "accepted"]).nullable(),
+  friendshipId: z.string().nullable(),
+  requestDirection: z.enum(["sent", "received"]).nullable(),
+});
+
 export const searchUsersQuerySchema = z.object({
   query: z
     .string()

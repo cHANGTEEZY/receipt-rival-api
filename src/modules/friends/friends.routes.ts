@@ -51,6 +51,14 @@ friendsRoutes.post(
   (c) => friendsController.rejectRequest(c),
 );
 
+friendsRoutes.post(
+  "/requests/:friendshipId/cancel",
+  arcjetProtect(ajApi),
+  requireAuth(),
+  describeRoute(friendsDocs.cancelRequest),
+  (c) => friendsController.cancelRequest(c),
+);
+
 friendsRoutes.delete(
   "/:friendUserId",
   arcjetProtect(ajApi),
