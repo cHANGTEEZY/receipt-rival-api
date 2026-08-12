@@ -3,6 +3,7 @@ import { friendsRoutes } from "./friends/friends.routes";
 import { healthRoutes } from "./health/health.routes";
 import { meRoutes } from "./me/me.routes";
 import { paymentRoutes } from "./payment/payment.route";
+import { settlementRoutes } from "./settlement/settlement.routes";
 import {
   paymentSplitRoutes,
   splitRoutes,
@@ -16,5 +17,6 @@ apiV1Router.route("/users", usersRoutes);
 apiV1Router.route("/friends", friendsRoutes);
 apiV1Router.route("/payments", paymentRoutes);
 apiV1Router.route("/payments", paymentSplitRoutes);
+apiV1Router.route("/payments", settlementRoutes);
 apiV1Router.route("/splits", splitRoutes);
 apiV1Router.route("/me", meRoutes);
