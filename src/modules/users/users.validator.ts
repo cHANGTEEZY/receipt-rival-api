@@ -32,3 +32,19 @@ export const searchUsersQuerySchema = z.object({
       example: "alex",
     }),
 });
+
+export const updateMeSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1, "Name is required")
+      .max(80, "Name cannot be more than 80 characters")
+      .meta({
+        description: "Display name",
+        example: "Alex Gurung",
+      }),
+  })
+  .meta({
+    example: { name: "Alex Gurung" },
+  });

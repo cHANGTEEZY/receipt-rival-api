@@ -132,4 +132,53 @@ export const usersDocs = {
       },
     },
   },
+  updateMe: {
+    tags: usersTags,
+    summary: "Update current user profile",
+    description: "Updates the authenticated user's display name.",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Updated profile",
+        content: {
+          "application/json": {
+            schema: resolver(userProfileResponseSchema),
+          },
+        },
+      },
+      401: {
+        description: "Not authenticated",
+        content: {
+          "application/json": {
+            schema: resolver(usersErrorSchema),
+          },
+        },
+      },
+    },
+  },
+  uploadAvatar: {
+    tags: usersTags,
+    summary: "Upload avatar",
+    description:
+      "Uploads a public ImageKit avatar for the current user. Stores the image URL on user.image.",
+    security: [{ cookieAuth: [] }],
+    responses: {
+      200: {
+        description: "Updated profile",
+        content: {
+          "application/json": {
+            schema: resolver(userProfileResponseSchema),
+          },
+        },
+      },
+      400: {
+        description: "Invalid image",
+        content: {
+          "application/json": {
+            schema: resolver(usersErrorSchema),
+          },
+        },
+      },
+    },
+  },
 };

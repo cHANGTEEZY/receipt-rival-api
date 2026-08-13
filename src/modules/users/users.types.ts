@@ -21,5 +21,5 @@ export type FriendRequestDirection = "sent" | "received" | null;
 export type PublicUserSearchResult = PublicUser & {
   friendRequestStatus: FriendRequestStatus;
   friendshipId: string | null;
-  requestDirection: FriendRequestDirection;
+    requestDirection: FriendRequestDirection;
 };

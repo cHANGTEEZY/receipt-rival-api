@@ -27,6 +27,19 @@ export const usersRepository = {
     return record ?? null;
   },
 
+  async updateProfile(id: string, input: { name?: string; image?: string | null }) {
+    const [record] = await db
+      .update(user)
+      .set({
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.image !== undefined ? { image: input.image } : {}),
+      })
+      .where(eq(user.id, id))
+      .returning();
+
+    return record ?? null;
+  },
+
   async search(query: string, currentUserId: string, limit = 20) {
     const pattern = `%${query}%`;
 

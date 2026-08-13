@@ -1,3 +1,9 @@
+import { ImageUploadError } from "../../lib/file-upload";
+import {
+  deleteUserAvatarImage,
+  isImageKitFileId,
+  uploadUserAvatarImage,
+} from "../../lib/file-upload";
 import { usersRepository } from "./users.repository";
 import type {
   FriendRequestDirection,
@@ -6,6 +12,15 @@ import type {
   PublicUserCard,
   PublicUserSearchResult,
 } from "./users.types";
+
+type ServiceError = {
+  ok: false;
+  code: string;
+  message: string;
+  status: 400 | 403 | 404 | 502;
+};
+
+type ServiceSuccess<T> = { ok: true; data: T };
 
 function toPublicUser(record: {
   id: string;
@@ -58,6 +73,78 @@ export const usersService = {
   ): Promise<PublicUserSearchResult[]> {
     const records = await usersRepository.search(query, currentUserId);
     return records.map((record) => toPublicUserSearchResult(record, currentUserId));
+  },
+
+  async updateProfile(
+    userId: string,
+    name: string,
+  ): Promise<ServiceSuccess<PublicUser> | ServiceError> {
+    const record = await usersRepository.updateProfile(userId, { name });
+    if (!record) {
+      return {
+        ok: false,
+        code: "NOT_FOUND",
+        message: "User not found",
+        status: 404,
+      };
+    }
+    return { ok: true, data: toPublicUser(record) };
+  },
+
+  async uploadAvatar(
+    userId: string,
+    file: File,
+  ): Promise<ServiceSuccess<PublicUser> | ServiceError> {
+    const existing = await usersRepository.findById(userId);
+    if (!existing) {
+      return {
+        ok: false,
+        code: "NOT_FOUND",
+        message: "User not found",
+        status: 404,
+      };
+    }
+
+    try {
+      const uploaded = await uploadUserAvatarImage({
+        userId,
+        file,
+        fileName: file.name,
+      });
+
+      if (existing.image && isImageKitFileId(existing.image)) {
+        await deleteUserAvatarImage(existing.image);
+      }
+
+      const record = await usersRepository.updateProfile(userId, {
+        image: uploaded.url,
+      });
+      if (!record) {
+        return {
+          ok: false,
+          code: "UPDATE_FAILED",
+          message: "Could not save avatar",
+          status: 400,
+        };
+      }
+
+      return { ok: true, data: toPublicUser(record) };
+    } catch (error) {
+      if (error instanceof ImageUploadError) {
+        return {
+          ok: false,
+          code: error.code,
+          message: error.message,
+          status: error.status,
+        };
+      }
+      return {
+        ok: false,
+        code: "IMAGE_UPLOAD_FAILED",
+        message: "Failed to upload avatar image",
+        status: 502,
+      };
+    }
   },
 };
 
