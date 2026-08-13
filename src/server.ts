@@ -6,57 +6,61 @@ import {
 } from "./config/env";
 import { logger } from "./shared/utils/logger";
 
-const server = Bun.serve({
-  fetch: app.fetch,
-  hostname: env.HOST,
-  port: env.PORT,
-  idleTimeout: 30,
-});
+export default app;
 
-logger.info(
-  {
-    url: server.url.toString(),
-    environment: env.NODE_ENV,
-    corsCredentials: corsCredentialsEnabled,
-    corsOrigins:
-      env.CORS_ORIGIN.trim() === "*" ? "*" : trustedFrontendOrigins.length,
-    frontendOrigin: env.FRONTEND_ORIGIN,
-  },
-  "server listening",
-);
+if (!process.env.VERCEL) {
+  const server = Bun.serve({
+    fetch: app.fetch,
+    hostname: env.HOST,
+    port: env.PORT,
+    idleTimeout: 30,
+  });
 
-let isShuttingDown = false;
+  logger.info(
+    {
+      url: server.url.toString(),
+      environment: env.NODE_ENV,
+      corsCredentials: corsCredentialsEnabled,
+      corsOrigins:
+        env.CORS_ORIGIN.trim() === "*" ? "*" : trustedFrontendOrigins.length,
+      frontendOrigin: env.FRONTEND_ORIGIN,
+    },
+    "server listening",
+  );
 
-const shutdown = async (signal: string) => {
-  if (isShuttingDown) return;
-  isShuttingDown = true;
+  let isShuttingDown = false;
 
-  logger.info({ signal }, "graceful shutdown started");
+  const shutdown = async (signal: string) => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
 
-  try {
-    await server.stop(true);
-    logger.info("server stopped");
-    process.exit(0);
-  } catch (error) {
-    logger.error({ error, signal }, "graceful shutdown failed");
-    process.exit(1);
-  }
-};
+    logger.info({ signal }, "graceful shutdown started");
 
-process.on("SIGINT", () => {
-  void shutdown("SIGINT");
-});
+    try {
+      await server.stop(true);
+      logger.info("server stopped");
+      process.exit(0);
+    } catch (error) {
+      logger.error({ error, signal }, "graceful shutdown failed");
+      process.exit(1);
+    }
+  };
 
-process.on("SIGTERM", () => {
-  void shutdown("SIGTERM");
-});
+  process.on("SIGINT", () => {
+    void shutdown("SIGINT");
+  });
 
-process.on("uncaughtException", (error) => {
-  logger.fatal({ error }, "uncaught exception");
-  void shutdown("uncaughtException");
-});
+  process.on("SIGTERM", () => {
+    void shutdown("SIGTERM");
+  });
 
-process.on("unhandledRejection", (reason) => {
-  logger.fatal({ reason }, "unhandled rejection");
-  void shutdown("unhandledRejection");
-});
+  process.on("uncaughtException", (error) => {
+    logger.fatal({ error }, "uncaught exception");
+    void shutdown("uncaughtException");
+  });
+
+  process.on("unhandledRejection", (reason) => {
+    logger.fatal({ reason }, "unhandled rejection");
+    void shutdown("unhandledRejection");
+  });
+}

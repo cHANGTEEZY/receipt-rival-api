@@ -27,4 +27,14 @@ describe("app", () => {
 
     expect(res.status).toBe(404);
   });
+
+  it("GET / returns api info", async () => {
+    const res = await app.request("/");
+
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+
+    expect((body as { health: string }).health).toBe("/health");
+  });
 });

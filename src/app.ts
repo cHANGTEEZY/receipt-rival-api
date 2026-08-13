@@ -48,6 +48,15 @@ app.use("*", secureHeaders());
 app.use("*", requestId());
 app.use("*", requestLogger());
 app.use("*", compress());
+
+app.get("/", (c) =>
+  c.json({
+    name: "Receipt Rival API",
+    health: "/health",
+    docs: "/docs",
+  }),
+);
+
 app.use("*", sessionMiddleware);
 
 app.route("/api/auth", authRoutes);

@@ -37,15 +37,32 @@ export async function pgPoolConfig(
 ): Promise<PgPoolConfig> {
   const cleaned = urlForPg(connectionString);
   const u = new URL(cleaned);
-  const { address } = await dns.lookup(u.hostname, { family: 4 });
 
-  return {
-    host: address,
-    port: Number(u.port || 5432),
-    user: decodeURIComponent(u.username),
-    password: decodeURIComponent(u.password),
-    database: decodeURIComponent(u.pathname.replace(/^\//, "")),
-    ssl: sslFromUrl(u),
-    connectionTimeoutMillis: 15_000,
-  };
+  // Vercel Functions connect by hostname. IPv4 pinning is a local Bun workaround
+  // for Neon's unreachable AAAA records and can fail in Vercel's network.
+  if (process.env.VERCEL) {
+    return {
+      connectionString: cleaned,
+      connectionTimeoutMillis: 15_000,
+    };
+  }
+
+  try {
+    const { address } = await dns.lookup(u.hostname, { family: 4 });
+
+    return {
+      host: address,
+      port: Number(u.port || 5432),
+      user: decodeURIComponent(u.username),
+      password: decodeURIComponent(u.password),
+      database: decodeURIComponent(u.pathname.replace(/^\//, "")),
+      ssl: sslFromUrl(u),
+      connectionTimeoutMillis: 15_000,
+    };
+  } catch {
+    return {
+      connectionString: cleaned,
+      connectionTimeoutMillis: 15_000,
+    };
+  }
 }

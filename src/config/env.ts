@@ -90,10 +90,15 @@ const envSchema = z.object({
   IMAGEKIT_PRIVATE_KEY: z.string().min(1),
 });
 
-const parsed = envSchema.parse(process.env);
+const parsed = envSchema.safeParse(process.env);
+if (!parsed.success) {
+  const missing = Object.keys(parsed.error.flatten().fieldErrors);
+  console.error("Invalid environment variables:", missing.join(", "));
+  throw new Error(`Invalid environment variables: ${missing.join(", ")}`);
+}
 
 const imagekitUrlEndpoint =
-  parsed.IMAGEKIT_URL_ENDPOINT ?? parsed.IMAGEKIT_BASE_URL;
+  parsed.data.IMAGEKIT_URL_ENDPOINT ?? parsed.data.IMAGEKIT_BASE_URL;
 if (!imagekitUrlEndpoint) {
   throw new Error(
     "Set IMAGEKIT_URL_ENDPOINT or IMAGEKIT_BASE_URL (e.g. https://ik.imagekit.io/your_id)",
@@ -101,7 +106,7 @@ if (!imagekitUrlEndpoint) {
 }
 
 export const env = {
-  ...parsed,
+  ...parsed.data,
   IMAGEKIT_URL_ENDPOINT: imagekitUrlEndpoint,
 };
 
