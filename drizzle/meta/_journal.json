@@ -50,6 +50,13 @@
       "when": 1786386830532,
       "tag": "0006_charming_luminals",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787499184226,
+      "tag": "0007_wakeful_ultragirl",
+      "breakpoints": true
     }
   ]
 }

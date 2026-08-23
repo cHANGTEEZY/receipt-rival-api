@@ -71,11 +71,15 @@ export type UploadPaymentReceiptInput = {
   userId: string;
   file: File | Blob | Buffer;
   fileName?: string;
+  uploadId?: string;
 };
 
 export type UploadPaymentReceiptResult = {
   url: string;
   fileId: string;
+  mimeType: string;
+  byteSize: number;
+  contentHash: string;
 };
 
 export async function uploadPaymentReceiptImage(
@@ -110,8 +114,12 @@ export async function uploadPaymentReceiptImage(
     mimeType,
     input.file instanceof File ? input.file.name : input.fileName,
   );
-  const fileName = `receipt-${input.paymentId}-${Date.now()}.${ext}`;
+  const uploadIdentity = input.uploadId ?? String(Date.now());
+  const fileName = `receipt-${input.paymentId}-${uploadIdentity}.${ext}`;
   const folder = `/receipts/${input.paymentId}`;
+  const contentHash = Buffer.from(
+    await crypto.subtle.digest("SHA-256", new Uint8Array(buffer)),
+  ).toString("hex");
 
   try {
     const response = await getImageKitClient().upload({
@@ -129,7 +137,13 @@ export async function uploadPaymentReceiptImage(
       throw new ImageUploadError("ImageKit upload returned an incomplete response");
     }
 
-    return { url, fileId };
+    return {
+      url,
+      fileId,
+      mimeType,
+      byteSize: buffer.byteLength,
+      contentHash,
+    };
   } catch (error) {
     if (error instanceof ImageUploadError) throw error;
     throw new ImageUploadError(

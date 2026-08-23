@@ -214,6 +214,13 @@ export const publicPaymentSchema = z.object({
   receiptImageUrl: z.string().nullable().meta({
     example: "https://cdn.example.com/receipts/dinner.jpg",
   }),
+  receiptImageFileId: z.string().nullable(),
+  receiptImageUploadId: z.string().nullable(),
+  receiptImageMimeType: z.string().nullable(),
+  receiptImageByteSize: z.number().int().nonnegative().nullable(),
+  receiptImageContentHash: z.string().nullable(),
+  syncVersion: z.number().int().positive(),
+  deletedAt: z.coerce.date().nullable(),
   metadata: z.record(z.string(), z.unknown()).meta({
     example: { table: "12" },
   }),

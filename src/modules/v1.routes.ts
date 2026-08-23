@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { deadbeatRoutes } from "./deadbeat/deadbeat.routes";
 import { friendsRoutes } from "./friends/friends.routes";
 import { healthRoutes } from "./health/health.routes";
 import { meRoutes } from "./me/me.routes";
@@ -20,3 +21,4 @@ apiV1Router.route("/payments", paymentSplitRoutes);
 apiV1Router.route("/payments", settlementRoutes);
 apiV1Router.route("/splits", splitRoutes);
 apiV1Router.route("/me", meRoutes);
+apiV1Router.route("/deadbeat", deadbeatRoutes);

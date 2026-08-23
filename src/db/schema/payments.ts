@@ -8,6 +8,7 @@ import {
   jsonb,
   numeric,
   pgEnum,
+  pgSequence,
   pgTable,
   text,
   timestamp,
@@ -36,6 +37,10 @@ export const splitStatusEnum = pgEnum('split_status', [
   'forgiven',
   'cancelled',
 ]);
+
+export const paymentSyncVersionSequence = pgSequence(
+  'payment_sync_version_seq',
+);
 
 export const payment = pgTable(
   'payment',
@@ -67,6 +72,15 @@ export const payment = pgTable(
     cancelledAt: timestamp('cancelled_at'),
     locationName: varchar('location_name', { length: 150 }),
     receiptImageUrl: text('receipt_image_url'),
+    receiptImageFileId: text('receipt_image_file_id'),
+    receiptImageUploadId: text('receipt_image_upload_id'),
+    receiptImageMimeType: varchar('receipt_image_mime_type', { length: 100 }),
+    receiptImageByteSize: bigint('receipt_image_byte_size', { mode: 'number' }),
+    receiptImageContentHash: text('receipt_image_content_hash'),
+    syncVersion: bigint('sync_version', { mode: 'number' })
+      .notNull()
+      .default(sql`nextval('public.payment_sync_version_seq')`),
+    deletedAt: timestamp('deleted_at'),
     metadata: jsonb('metadata')
       .$type<Record<string, unknown>>()
       .notNull()
@@ -79,6 +93,7 @@ export const payment = pgTable(
   },
   table => [
     index('payment_createdBy_idx').on(table.createdBy),
+    index('payment_syncVersion_idx').on(table.syncVersion),
     check(
       'payment_amounts_non_negative',
       sql`${table.totalAmountCents} >= 0

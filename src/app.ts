@@ -38,7 +38,13 @@ app.use(
       if (env.CORS_ORIGIN.trim() === "*") return origin;
       return trustedFrontendOrigins[0] ?? "http://localhost:5173";
     },
-    allowHeaders: ["Content-Type", "Authorization", "Cookie", "expo-origin"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cookie",
+      "expo-origin",
+      "Idempotency-Key",
+    ],
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: corsCredentialsEnabled,
   }),

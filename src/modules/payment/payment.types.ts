@@ -26,6 +26,13 @@ export type PublicPayment = {
   dueAt: Date | null;
   locationName: string | null;
   receiptImageUrl: string | null;
+  receiptImageFileId: string | null;
+  receiptImageUploadId: string | null;
+  receiptImageMimeType: string | null;
+  receiptImageByteSize: number | null;
+  receiptImageContentHash: string | null;
+  syncVersion: number;
+  deletedAt: Date | null;
   metadata: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;

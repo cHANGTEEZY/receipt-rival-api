@@ -6,12 +6,18 @@ import type { AppVariables } from "../../shared/types/app.types";
 import { ajApi } from "../../shared/utils/arcjet";
 import { paymentController } from "./payment.controller";
 import { paymentDocs } from "./payment.docs";
+import { receiptSyncController } from "./receipt-sync.controller";
+import { receiptSyncDocs } from "./receipt-sync.docs";
 import {
   addParticipantSchema,
   createPaymentItemSchema,
   createPaymentSchema,
   updatePaymentSchema,
 } from "./payment.validator";
+import {
+  receiptBundleSchema,
+  receiptPullQuerySchema,
+} from "./receipt-sync.validator";
 
 export const paymentRoutes = new Hono<{ Variables: AppVariables }>();
 
@@ -30,6 +36,32 @@ paymentRoutes.get(
   requireAuth(),
   describeRoute(paymentDocs.listPayments),
   (c) => paymentController.listPayments(c),
+);
+
+paymentRoutes.post(
+  "/receipt-bundles",
+  arcjetProtect(ajApi),
+  requireAuth(),
+  describeRoute(receiptSyncDocs.createBundle),
+  validator("json", receiptBundleSchema),
+  (c) => receiptSyncController.createBundle(c),
+);
+
+paymentRoutes.get(
+  "/sync",
+  arcjetProtect(ajApi),
+  requireAuth(),
+  describeRoute(receiptSyncDocs.pull),
+  validator("query", receiptPullQuerySchema),
+  (c) => receiptSyncController.pull(c),
+);
+
+paymentRoutes.put(
+  "/:paymentId/receipt",
+  arcjetProtect(ajApi),
+  requireAuth(),
+  describeRoute(receiptSyncDocs.uploadImage),
+  (c) => receiptSyncController.uploadImage(c),
 );
 
 paymentRoutes.get(

@@ -4,3 +4,4 @@ export * from "./payments";
 export * from "./settlements";
 export * from "./notification";
 export * from "./deadbeat";
+export * from "./receipt-sync";
